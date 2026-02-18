@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp">
+
+    <!-- Date Circle -->
+    <TextView
+        android:id="@+id/tvEventDay"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/circle_gray"
+        android:gravity="center"
+        android:text="30"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/black" />
+
+    <!-- Vertical Line -->
+    <View
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="16dp"
+        android:background="@color/purple_primary" />
+
+    <!-- Event Details -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp">
+
+        <TextView
+            android:id="@+id/tvEventTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Presentation"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/black" />
+
+        <TextView
+            android:id="@+id/tvEventTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12:30 am"
+            android:textSize="12sp"
+            android:textColor="@color/gray_text" />
+
+        <TextView
+            android:id="@+id/tvEventSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Awarding"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/tvEventSubTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1:30 am"
+            android:textSize="12sp"
+            android:textColor="@color/gray_text" />
+
+    </LinearLayout>
+
+</LinearLayout>
