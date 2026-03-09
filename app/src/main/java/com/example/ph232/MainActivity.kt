@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
 
         // Check if user is already logged in
         if (isUserLoggedIn()) {
-            navigateToDashboard()
+            finish()
             return
         }
 
@@ -51,11 +51,16 @@ class MainActivity : AppCompatActivity() {
 
             if (ph.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            } else if (ph == "admin123" && password == "admin123") {
+                // Admin login
+                saveCredentials(ph, password, isAdmin = true)
+                Toast.makeText(this, "Admin login successful!", Toast.LENGTH_SHORT).show()
+                navigateToAdminDashboard()
             } else if (!isValidPHFormat(ph)) {
                 Toast.makeText(this, "Invalid PH format. Use 3 digits (e.g., 001, 002)", Toast.LENGTH_SHORT).show()
             } else {
-                // Save credentials locally
-                saveCredentials(ph, password)
+                // Save credentials locally for student
+                saveCredentials(ph, password, isAdmin = false)
                 Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show()
                 navigateToDashboard()
             }
@@ -77,7 +82,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isUserLoggedIn(): Boolean {
-        return sharedPreferences.getString("USER_PH", null) != null
+        val userPH = sharedPreferences.getString("USER_PH", null)
+        if (userPH != null) {
+            val isAdmin = sharedPreferences.getBoolean("IS_ADMIN", false)
+            if (isAdmin) {
+                navigateToAdminDashboard()
+            } else {
+                navigateToDashboard()
+            }
+            return true
+        }
+        return false
     }
 
     private fun navigateToDashboard() {
@@ -86,10 +101,17 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun saveCredentials(ph: String, password: String) {
+    private fun navigateToAdminDashboard() {
+        val intent = Intent(this, AdminDashboardActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    private fun saveCredentials(ph: String, password: String, isAdmin: Boolean = false) {
         val editor = sharedPreferences.edit()
         editor.putString("USER_PH", ph)
         editor.putString("USER_PASSWORD", password)
+        editor.putBoolean("IS_ADMIN", isAdmin)
         editor.apply()
     }
 }

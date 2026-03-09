@@ -6,10 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -20,18 +22,12 @@ class EventsFragment : Fragment() {
     private lateinit var btnNextMonth: ImageButton
     private lateinit var rvCalendar: RecyclerView
     private lateinit var rvUpcomingEvents: RecyclerView
+    private lateinit var db: FirebaseFirestore
 
     private var currentCalendar = Calendar.getInstance()
     private lateinit var calendarAdapter: CalendarAdapter
-
-    // Sample events data
-    private val events = listOf(
-        Event(30, "Presentation", "12:30 am", "Awarding", "1:30 am"),
-        Event(30, "Presentation", "12:30 am", "Awarding", "1:30 am")
-    )
-
-    // Days with events (for highlighting in calendar)
-    private val eventDays = setOf(20, 30)
+    private var events = mutableListOf<Event>()
+    private var eventDays = mutableSetOf<Int>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,6 +39,8 @@ class EventsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        db = FirebaseFirestore.getInstance()
 
         tvMonthYear = view.findViewById(R.id.tvMonthYear)
         btnPrevMonth = view.findViewById(R.id.btnPrevMonth)
@@ -58,18 +56,92 @@ class EventsFragment : Fragment() {
         rvUpcomingEvents.layoutManager = LinearLayoutManager(requireContext())
         rvUpcomingEvents.adapter = EventsAdapter(events)
 
+        // Load events from Firestore
+        loadEvents()
+
         // Month navigation
         btnPrevMonth.setOnClickListener {
             currentCalendar.add(Calendar.MONTH, -1)
             updateMonthYearText()
             setupCalendar()
+            updateEventDaysForMonth()
         }
 
         btnNextMonth.setOnClickListener {
             currentCalendar.add(Calendar.MONTH, 1)
             updateMonthYearText()
             setupCalendar()
+            updateEventDaysForMonth()
         }
+    }
+
+    private fun loadEvents() {
+        db.collection("events")
+            .get()
+            .addOnSuccessListener { result ->
+                events.clear()
+                eventDays.clear()
+
+                for (document in result) {
+                    val event = document.toObject(Event::class.java).copy(id = document.id)
+                    events.add(event)
+
+                    // Parse the date to get the day for calendar highlighting
+                    parseEventDate(event.date)
+                }
+
+                // Update upcoming events list
+                rvUpcomingEvents.adapter = EventsAdapter(events)
+
+                // Update calendar with event days
+                updateEventDaysForMonth()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error loading events: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun parseEventDate(dateStr: String) {
+        if (dateStr.isEmpty()) return
+
+        try {
+            // Try common date formats
+            val formats = listOf(
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()),
+                SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
+                SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
+            )
+
+            for (format in formats) {
+                try {
+                    val date = format.parse(dateStr)
+                    if (date != null) {
+                        val eventCalendar = Calendar.getInstance()
+                        eventCalendar.time = date
+
+                        // Check if the event is in the current month view
+                        if (eventCalendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+                            eventCalendar.get(Calendar.MONTH) == currentCalendar.get(Calendar.MONTH)) {
+                            eventDays.add(eventCalendar.get(Calendar.DAY_OF_MONTH))
+                        }
+                        return
+                    }
+                } catch (e: Exception) {
+                    // Try next format
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore parsing errors
+        }
+    }
+
+    private fun updateEventDaysForMonth() {
+        eventDays.clear()
+        for (event in events) {
+            parseEventDate(event.date)
+        }
+        setupCalendar()
     }
 
     private fun updateMonthYearText() {
@@ -119,14 +191,6 @@ class EventsFragment : Fragment() {
 }
 
 data class CalendarDay(val day: Int, val isCurrentMonth: Boolean)
-
-data class Event(
-    val day: Int,
-    val title: String,
-    val time: String,
-    val subtitle: String,
-    val subTime: String
-)
 
 class CalendarAdapter(
     private val days: List<CalendarDay>,

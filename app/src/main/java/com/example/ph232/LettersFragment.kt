@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
 
 class LettersFragment : Fragment() {
 
@@ -20,21 +21,11 @@ class LettersFragment : Fragment() {
     private lateinit var tabCompleted: TextView
     private lateinit var rvLetters: RecyclerView
     private lateinit var adapter: LettersAdapter
+    private lateinit var db: FirebaseFirestore
 
     private var isToDoSelected = true
-
-    // Sample data
-    private val pendingLetters = listOf(
-        Letter("Letters", "Pending", "Feb 2, 2026", false),
-        Letter("Letters", "Pending", "Feb 2, 2026", false),
-        Letter("Letters", "Pending", "Feb 2, 2026", false),
-        Letter("Letters", "Pending", "Feb 2, 2026", false)
-    )
-
-    private val completedLetters = listOf(
-        Letter("Letters", "Completed", "Jan 15, 2026", true),
-        Letter("Letters", "Completed", "Jan 10, 2026", true)
-    )
+    private var pendingLetters = mutableListOf<Letter>()
+    private var completedLetters = mutableListOf<Letter>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,20 +38,22 @@ class LettersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        db = FirebaseFirestore.getInstance()
+
         tvPendingCount = view.findViewById(R.id.tvPendingCount)
         tabToDo = view.findViewById(R.id.tabToDo)
         tabCompleted = view.findViewById(R.id.tabCompleted)
         rvLetters = view.findViewById(R.id.rvLetters)
 
-        // Set pending count with bold number
-        updatePendingCount(pendingLetters.size)
-
         // Setup RecyclerView
         adapter = LettersAdapter(pendingLetters) { letter ->
-            Toast.makeText(requireContext(), "Marked as turned in", Toast.LENGTH_SHORT).show()
+            markLetterAsTurnedIn(letter)
         }
         rvLetters.layoutManager = LinearLayoutManager(requireContext())
         rvLetters.adapter = adapter
+
+        // Load letters from Firestore
+        loadLetters()
 
         // Tab click listeners
         tabToDo.setOnClickListener {
@@ -78,6 +71,59 @@ class LettersFragment : Fragment() {
                 adapter.updateData(completedLetters)
             }
         }
+    }
+
+    private fun loadLetters() {
+        db.collection("letters")
+            .get()
+            .addOnSuccessListener { result ->
+                pendingLetters.clear()
+                completedLetters.clear()
+
+                for (document in result) {
+                    val letter = document.toObject(Letter::class.java).copy(id = document.id)
+                    val status = letter.status.lowercase()
+
+                    if (status == "completed" || status == "turned in" || letter.isCompleted) {
+                        completedLetters.add(letter.copy(isCompleted = true))
+                    } else {
+                        pendingLetters.add(letter.copy(isCompleted = false))
+                    }
+                }
+
+                // Update UI
+                updatePendingCount(pendingLetters.size)
+                if (isToDoSelected) {
+                    adapter.updateData(pendingLetters)
+                } else {
+                    adapter.updateData(completedLetters)
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error loading letters: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun markLetterAsTurnedIn(letter: Letter) {
+        if (letter.id.isEmpty()) {
+            Toast.makeText(requireContext(), "Cannot update letter without ID", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        db.collection("letters")
+            .document(letter.id)
+            .update(mapOf(
+                "status" to "Turned In",
+                "isCompleted" to true
+            ))
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Marked as turned in", Toast.LENGTH_SHORT).show()
+                // Reload letters to refresh the lists
+                loadLetters()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error updating letter: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun updatePendingCount(count: Int) {
@@ -107,13 +153,6 @@ class LettersFragment : Fragment() {
         }
     }
 }
-
-data class Letter(
-    val title: String,
-    val status: String,
-    val deadline: String,
-    val isCompleted: Boolean
-)
 
 class LettersAdapter(
     private var letters: List<Letter>,

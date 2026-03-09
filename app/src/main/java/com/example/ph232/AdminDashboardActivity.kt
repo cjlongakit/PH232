@@ -1,48 +1,34 @@
 package com.example.ph232
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
-class DashboardActivity : AppCompatActivity() {
+class AdminDashboardActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var tvHeaderTitle: TextView
     private lateinit var bottomNavigation: BottomNavigationView
-    private lateinit var fabQrScanner: FloatingActionButton
+    private lateinit var fabQrGenerator: FloatingActionButton
     private lateinit var profileCard: CardView
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            showQrScannerDialog()
-        } else {
-            Toast.makeText(this, "Camera permission required for QR scanning", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_dashboard)
+        setContentView(R.layout.activity_admin_dashboard)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.fragmentContainer)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -56,7 +42,7 @@ class DashboardActivity : AppCompatActivity() {
         // Initialize views
         tvHeaderTitle = findViewById(R.id.tvHeaderTitle)
         bottomNavigation = findViewById(R.id.bottomNavigation)
-        fabQrScanner = findViewById(R.id.fabQrScanner)
+        fabQrGenerator = findViewById(R.id.fabQrGenerator)
         profileCard = findViewById(R.id.profileCard)
 
         // Setup Profile dropdown menu
@@ -64,9 +50,9 @@ class DashboardActivity : AppCompatActivity() {
             showProfileMenu(view)
         }
 
-        // Setup QR Scanner FAB
-        fabQrScanner.setOnClickListener {
-            openQrScanner()
+        // Setup QR Generator FAB
+        fabQrGenerator.setOnClickListener {
+            showQrGeneratorDialog()
         }
 
         // Setup bottom navigation
@@ -74,17 +60,22 @@ class DashboardActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_dashboard -> {
                     tvHeaderTitle.text = "Dashboard"
-                    loadFragment(DashboardFragment())
+                    loadFragment(AdminDashboardFragment())
                     true
                 }
                 R.id.nav_letters -> {
                     tvHeaderTitle.text = "Letters"
-                    loadFragment(LettersFragment())
+                    loadFragment(AdminLettersFragment())
                     true
                 }
                 R.id.nav_events -> {
                     tvHeaderTitle.text = "Events"
-                    loadFragment(EventsFragment())
+                    loadFragment(AdminEventsFragment())
+                    true
+                }
+                R.id.nav_students -> {
+                    tvHeaderTitle.text = "All Students"
+                    loadFragment(AdminStudentsFragment())
                     true
                 }
                 else -> false
@@ -124,22 +115,9 @@ class DashboardActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    private fun openQrScanner() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
-            showQrScannerDialog()
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
-    private fun showQrScannerDialog() {
-        val studentId = sharedPreferences.getString("USER_PH", "Unknown") ?: "Unknown"
-        val dialog = QrScannerDialog.newInstance(studentId)
-        dialog.setOnAttendanceRecordedListener { success, message ->
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-        }
-        dialog.show(supportFragmentManager, "QrScannerDialog")
+    private fun showQrGeneratorDialog() {
+        val dialog = QrGeneratorDialog.newInstance("Attendance")
+        dialog.show(supportFragmentManager, "QrGeneratorDialog")
     }
 
     private fun loadFragment(fragment: Fragment) {

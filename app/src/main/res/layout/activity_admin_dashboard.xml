@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    tools:context=".DashboardActivity">
+    tools:context=".AdminDashboardActivity">
 
     <!-- Top Purple Header -->
     <View
@@ -100,17 +100,17 @@
         app:itemIconTint="@color/bottom_nav_color"
         app:itemTextColor="@color/bottom_nav_color"
         app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu"
+        app:menu="@menu/admin_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent" />
 
-    <!-- QR Scanner FAB -->
+    <!-- QR Generator FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabQrScanner"
+        android:id="@+id/fabQrGenerator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:contentDescription="Scan QR Code"
-        android:src="@drawable/ic_qr_scan"
+        android:contentDescription="Generate QR Code"
+        android:src="@drawable/ic_qr_code"
         app:backgroundTint="@color/purple_primary"
         app:tint="@color/white"
         app:fabSize="normal"
@@ -118,3 +118,4 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

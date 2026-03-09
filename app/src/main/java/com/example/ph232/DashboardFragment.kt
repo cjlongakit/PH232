@@ -1,44 +1,28 @@
 package com.example.ph232
 
-import android.Manifest
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
-import android.content.pm.PackageManager
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.core.content.ContextCompat
+import android.widget.TextView
 import androidx.fragment.app.Fragment
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class DashboardFragment : Fragment() {
 
-    private lateinit var cameraPreview: PreviewView
-    private lateinit var btnFlash: FloatingActionButton
-    private lateinit var scanLine: View
-    private lateinit var cameraExecutor: ExecutorService
-    private var camera: Camera? = null
-    private var isFlashOn = false
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            startCamera()
-        } else {
-            Toast.makeText(requireContext(), "Camera permission required", Toast.LENGTH_SHORT).show()
-        }
-    }
+    private lateinit var tvGreeting: TextView
+    private lateinit var tvCurrentStatus: TextView
+    private lateinit var tvTurnedInCount: TextView
+    private lateinit var tvUpcomingEventsCount: TextView
+    private lateinit var tvNextEventDetails: TextView
+    private lateinit var eventStatusIndicator: View
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var db: FirebaseFirestore
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,117 +35,114 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        cameraPreview = view.findViewById(R.id.cameraPreview)
-        btnFlash = view.findViewById(R.id.btnFlash)
-        scanLine = view.findViewById(R.id.scanLine)
+        // Initialize views
+        tvGreeting = view.findViewById(R.id.tvGreeting)
+        tvCurrentStatus = view.findViewById(R.id.tvCurrentStatus)
+        tvTurnedInCount = view.findViewById(R.id.tvTurnedInCount)
+        tvUpcomingEventsCount = view.findViewById(R.id.tvUpcomingEventsCount)
+        tvNextEventDetails = view.findViewById(R.id.tvNextEventDetails)
+        eventStatusIndicator = view.findViewById(R.id.eventStatusIndicator)
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
+        sharedPreferences = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+        db = FirebaseFirestore.getInstance()
 
-        // Start scan line animation
-        startScanLineAnimation()
-
-        // Check camera permission
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED) {
-            startCamera()
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-
-        // Flash toggle
-        btnFlash.setOnClickListener {
-            toggleFlash()
-        }
+        // Load user data and dashboard stats
+        loadUserGreeting()
+        loadDashboardStats()
+        loadNextEvent()
     }
 
-    private fun startScanLineAnimation() {
-        val animator = ObjectAnimator.ofFloat(scanLine, "translationY", 0f, 200f)
-        animator.duration = 2000
-        animator.repeatCount = ValueAnimator.INFINITE
-        animator.repeatMode = ValueAnimator.REVERSE
-        animator.start()
+    private fun loadUserGreeting() {
+        val userName = sharedPreferences.getString("USER_NAME", "User") ?: "User"
+        val firstName = userName.split(" ").firstOrNull() ?: userName
+        tvGreeting.text = "Hello, $firstName!!"
     }
 
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
+    private fun loadDashboardStats() {
+        val studentId = sharedPreferences.getString("USER_PH", "") ?: ""
 
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(cameraPreview.surfaceProvider)
+        // Load letters count (pending and turned in)
+        if (studentId.isNotEmpty()) {
+            // Get pending letters count
+            db.collection("letters")
+                .whereEqualTo("studentId", studentId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener { result ->
+                    val pendingCount = result.size()
+                    tvCurrentStatus.text = "$pendingCount Letter Pending"
+                }
+                .addOnFailureListener {
+                    tvCurrentStatus.text = "0 Letter Pending"
                 }
 
-            val imageAnalyzer = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, QRCodeAnalyzer { qrCode ->
-                        activity?.runOnUiThread {
-                            Toast.makeText(requireContext(), "QR Code: $qrCode", Toast.LENGTH_LONG).show()
-                        }
-                    })
+            // Get turned in letters count
+            db.collection("letters")
+                .whereEqualTo("studentId", studentId)
+                .whereEqualTo("status", "turned_in")
+                .get()
+                .addOnSuccessListener { result ->
+                    tvTurnedInCount.text = result.size().toString()
                 }
-
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            try {
-                cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(
-                    viewLifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    imageAnalyzer
-                )
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Failed to start camera", Toast.LENGTH_SHORT).show()
-            }
-
-        }, ContextCompat.getMainExecutor(requireContext()))
-    }
-
-    private fun toggleFlash() {
-        camera?.let {
-            isFlashOn = !isFlashOn
-            it.cameraControl.enableTorch(isFlashOn)
-            btnFlash.setImageResource(
-                if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off
-            )
+                .addOnFailureListener {
+                    tvTurnedInCount.text = "0"
+                }
         }
-    }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        cameraExecutor.shutdown()
-    }
-
-    // QR Code Analyzer
-    private class QRCodeAnalyzer(private val onQRCodeDetected: (String) -> Unit) : ImageAnalysis.Analyzer {
-        private val scanner = BarcodeScanning.getClient()
-        private var lastAnalyzedTimestamp = 0L
-
-        @androidx.camera.core.ExperimentalGetImage
-        override fun analyze(imageProxy: ImageProxy) {
-            val currentTimestamp = System.currentTimeMillis()
-            if (currentTimestamp - lastAnalyzedTimestamp >= 1000) {
-                imageProxy.image?.let { image ->
-                    val inputImage = InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
-                    scanner.process(inputImage)
-                        .addOnSuccessListener { barcodes ->
-                            barcodes.firstOrNull()?.rawValue?.let { value ->
-                                onQRCodeDetected(value)
-                                lastAnalyzedTimestamp = currentTimestamp
-                            }
-                        }
-                        .addOnCompleteListener {
-                            imageProxy.close()
-                        }
-                } ?: imageProxy.close()
-            } else {
-                imageProxy.close()
+        // Get upcoming events count
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        db.collection("events")
+            .whereGreaterThanOrEqualTo("date", currentDate)
+            .get()
+            .addOnSuccessListener { result ->
+                tvUpcomingEventsCount.text = result.size().toString()
             }
-        }
+            .addOnFailureListener {
+                tvUpcomingEventsCount.text = "0"
+            }
+    }
+
+    private fun loadNextEvent() {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+        db.collection("events")
+            .whereGreaterThanOrEqualTo("date", currentDate)
+            .orderBy("date")
+            .limit(1)
+            .get()
+            .addOnSuccessListener { result ->
+                if (!result.isEmpty) {
+                    val event = result.documents[0]
+                    val eventDate = event.getString("date") ?: ""
+                    val eventName = event.getString("name") ?: event.getString("title") ?: "Event"
+
+                    // Format the date for display
+                    try {
+                        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val outputFormat = SimpleDateFormat("EEEE MMM dd, yyyy", Locale.getDefault())
+                        val date = inputFormat.parse(eventDate)
+                        val formattedDate = if (date != null) outputFormat.format(date) else eventDate
+                        tvNextEventDetails.text = "$formattedDate: $eventName"
+                        eventStatusIndicator.visibility = View.VISIBLE
+                    } catch (e: Exception) {
+                        tvNextEventDetails.text = "$eventDate: $eventName"
+                        eventStatusIndicator.visibility = View.VISIBLE
+                    }
+                } else {
+                    tvNextEventDetails.text = "No upcoming events"
+                    eventStatusIndicator.visibility = View.GONE
+                }
+            }
+            .addOnFailureListener {
+                tvNextEventDetails.text = "No upcoming events"
+                eventStatusIndicator.visibility = View.GONE
+            }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh data when fragment becomes visible
+        loadDashboardStats()
+        loadNextEvent()
     }
 }

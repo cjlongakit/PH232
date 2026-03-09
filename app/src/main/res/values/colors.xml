@@ -8,6 +8,20 @@
     <color name="gray_light">#F5F5F5</color>
     <color name="gray_text">#757575</color>
     <color name="gray_button">#BDBDBD</color>
+    <color name="gray_dark">#424242</color>
     <color name="link_blue">#1976D2</color>
     <color name="red_pending">#FF5252</color>
+    <color name="purple_500">#8E24AA</color>
+    <color name="purple_200">#E1BEE7</color>
+    <color name="green_500">#4CAF50</color>
+    <color name="green_200">#C8E6C9</color>
+    <color name="orange_500">#FF9800</color>
+    <color name="orange_200">#FFE0B2</color>
+
+    <!-- Status colors -->
+    <color name="status_turned_in">#4CAF50</color>
+    <color name="status_on_hand">#FF9800</color>
+    <color name="status_pending">#FF5252</color>
+    <color name="status_active">#4CAF50</color>
+    <color name="status_inactive">#9E9E9E</color>
 </resources>
