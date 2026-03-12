@@ -5,7 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-class StudentLetterAdapter(private var letters: List<LetterModel>) : RecyclerView.Adapter<StudentLetterAdapter.ViewHolder>() {
+class StudentLetterAdapter(private var letters: List<StaffLetter>) : RecyclerView.Adapter<StudentLetterAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvType: TextView = view.findViewById(R.id.tvStudentLetterType)
         val tvAssignedBy: TextView = view.findViewById(R.id.tvAssignedBy)
@@ -20,7 +20,7 @@ class StudentLetterAdapter(private var letters: List<LetterModel>) : RecyclerVie
         val letter = letters[position]
         holder.tvType.text = letter.type
         holder.tvDeadline.text = letter.deadline
-        holder.tvAssignedBy.text = "Assigned by: ${letter.phNumber}"
+        holder.tvAssignedBy.text = "Assigned by: ${letter.caseworker}"
         holder.tvStatus.text = letter.status.uppercase()
         when (letter.status.uppercase()) {
             "TURN IN" -> {
@@ -38,7 +38,7 @@ class StudentLetterAdapter(private var letters: List<LetterModel>) : RecyclerVie
         }
     }
     override fun getItemCount() = letters.size
-    fun updateData(newLetters: List<LetterModel>) {
+    fun updateData(newLetters: List<StaffLetter>) {
         letters = newLetters
         notifyDataSetChanged()
     }

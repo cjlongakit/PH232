@@ -176,6 +176,65 @@ class FirebaseRepository private constructor() {
         return listener
     }
 
+    // ==================== STAFF LETTERS (Separate from Admin Letters) ====================
+
+    private val staffLettersCollection = db.collection("staff_letters")
+
+    fun addStaffLetter(letter: StaffLetter, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val letterData = hashMapOf(
+            "phNumber" to letter.phNumber,
+            "studentName" to letter.studentName,
+            "type" to letter.type,
+            "deadline" to letter.deadline,
+            "status" to letter.status,
+            "caseworker" to letter.caseworker,
+            "dateCreated" to currentDate,
+            "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+
+        staffLettersCollection.add(letterData)
+            .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun updateStaffLetterStatus(letterId: String, status: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        staffLettersCollection.document(letterId)
+            .update("status", status)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun listenToStaffLetters(caseworker: String, onUpdate: (List<StaffLetter>) -> Unit): ListenerRegistration {
+        val listener = staffLettersCollection
+            .whereEqualTo("caseworker", caseworker)
+            .orderBy("deadline", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val letters = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(StaffLetter::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(letters)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    fun listenToStaffLettersByStudent(phNumber: String, onUpdate: (List<StaffLetter>) -> Unit): ListenerRegistration {
+        val listener = staffLettersCollection
+            .whereEqualTo("phNumber", phNumber)
+            .orderBy("deadline", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val letters = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(StaffLetter::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(letters)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
     // ==================== EVENTS ====================
 
     fun addEvent(event: Event, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
@@ -315,6 +374,45 @@ class FirebaseRepository private constructor() {
             .addOnFailureListener { e -> onFailure(e) }
     }
 
+    fun recordStaffAttendance(
+        studentId: String,
+        studentName: String,
+        staffId: String,
+        date: String,
+        scanTime: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        // Check if attendance already exists for this student today with this staff
+        attendanceCollection
+            .whereEqualTo("studentId", studentId)
+            .whereEqualTo("staffId", staffId)
+            .whereEqualTo("date", date)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    val attendanceData = hashMapOf(
+                        "studentId" to studentId,
+                        "studentName" to studentName,
+                        "staffId" to staffId,
+                        "date" to date,
+                        "scanTime" to scanTime,
+                        "time" to scanTime,
+                        "timestamp" to System.currentTimeMillis(),
+                        "status" to "present",
+                        "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                    )
+
+                    attendanceCollection.add(attendanceData)
+                        .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+                        .addOnFailureListener { e -> onFailure(e) }
+                } else {
+                    onFailure(Exception("Attendance already recorded for today"))
+                }
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
     fun listenToAttendance(onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
         val listener = attendanceCollection
             .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -347,6 +445,22 @@ class FirebaseRepository private constructor() {
     fun listenToAttendanceByEvent(eventId: String, onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
         val listener = attendanceCollection
             .whereEqualTo("eventId", eventId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val attendanceList = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Attendance::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(attendanceList)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    fun listenToStaffAttendance(staffId: String, date: String, onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
+        val listener = attendanceCollection
+            .whereEqualTo("staffId", staffId)
+            .whereEqualTo("date", date)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) return@addSnapshotListener
@@ -469,4 +583,3 @@ class FirebaseRepository private constructor() {
         activeListeners.remove(listener)
     }
 }
-

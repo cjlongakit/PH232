@@ -73,8 +73,10 @@ data class Attendance(
     val eventId: String = "",
     val eventName: String = "",
     val eventQR: String = "",
+    val staffId: String = "",  // Added for staff attendance tracking
     val date: String = "",
     val time: String = "",
+    val scanTime: String = "",  // Added for display in attendance list
     val timestamp: Long = 0,
     val status: String = "present", // present, late, absent
     val notes: String = "",
@@ -121,4 +123,45 @@ data class Admin(
     val createdAt: Date? = null,
     @ServerTimestamp
     val updatedAt: Date? = null
+)
+
+// Staff Letter model - SEPARATE from admin Letter
+// Used in "letters" collection with caseworker field
+data class StaffLetter(
+    @DocumentId
+    val id: String = "",
+    val phNumber: String = "",      // Student PH323 ID
+    val studentName: String = "",
+    val type: String = "",          // Gift, Reply, General, Final Letter, First Letter
+    val deadline: String = "",
+    val status: String = "PENDING", // PENDING, ON HAND, TURN IN, LATE
+    val caseworker: String = "",    // Staff username who assigned this
+    val dateCreated: String = "",
+    @ServerTimestamp
+    val createdAt: Date? = null
+)
+
+// User model for Firebase authentication
+data class User(
+    @DocumentId
+    val id: String = "",
+    val benId: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val birthdate: String = "",
+    val schoolName: String = "",
+    val schoolAddress: String = "",
+    val grade: String = "",
+    val guardFirstName: String = "",
+    val guardLastName: String = "",
+    val guardMobile: String = "",
+    val guardAddress: String = "",
+    val guardOccupation: String = "",
+    val guardBirthdate: String = "",
+    val guardEmail: String = "",
+    val password: String = "",
+    val role: String = "beneficiary", // beneficiary, staff, admin
+    val status: String = "pending",   // pending, approved, rejected
+    @ServerTimestamp
+    val createdAt: Date? = null
 )

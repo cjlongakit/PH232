@@ -13,8 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import java.text.SimpleDateFormat
@@ -28,9 +27,10 @@ class StaffAttendanceFragment : Fragment() {
     private lateinit var tvAttendanceCount: TextView
     private lateinit var rvAttendanceList: RecyclerView
 
-    private val db = FirebaseFirestore.getInstance()
+    private lateinit var repository: FirebaseRepository
     private lateinit var adapter: AttendanceAdapter
     private lateinit var staffUsername: String
+    private var attendanceListener: ListenerRegistration? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_staff_attendance, container, false)
@@ -38,6 +38,8 @@ class StaffAttendanceFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        repository = FirebaseRepository.getInstance()
 
         btnSetTime = view.findViewById(R.id.btnSetTime)
         ivGeneratedQR = view.findViewById(R.id.ivGeneratedQR)
@@ -53,7 +55,7 @@ class StaffAttendanceFragment : Fragment() {
         staffUsername = prefs.getString("USER_PH", "unknown_staff") ?: "unknown_staff"
 
         checkAndLoadTodayQR()
-        fetchTodaysAttendance()
+        setupAttendanceListener()
 
         btnSetTime.setOnClickListener {
             showTimePicker()
@@ -109,26 +111,17 @@ class StaffAttendanceFragment : Fragment() {
         }
     }
 
-    private fun fetchTodaysAttendance() {
+    private fun setupAttendanceListener() {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-        db.collection("attendance")
-            .whereEqualTo("date", todayStr)
-            .whereEqualTo("staffId", staffUsername)
-            .orderBy("scanTime", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshots, e ->
-                if (e != null || snapshots == null) return@addSnapshotListener
+        attendanceListener = repository.listenToStaffAttendance(staffUsername, todayStr) { attendanceList ->
+            tvAttendanceCount.text = "Total: ${attendanceList.size}"
+            adapter.updateData(attendanceList)
+        }
+    }
 
-                val records = mutableListOf<AttendanceRecord>()
-                for (doc in snapshots) {
-                    val name = doc.getString("studentName") ?: "Unknown Student"
-                    val time = doc.getString("scanTime") ?: "--:--"
-                    records.add(AttendanceRecord(name, time))
-                }
-
-                tvAttendanceCount.text = "Total: ${records.size}"
-                adapter.updateData(records)
-            }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        attendanceListener?.let { repository.removeListener(it) }
     }
 }
-

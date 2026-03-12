@@ -21,7 +21,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.tabs.TabLayout
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ListenerRegistration
 import java.util.*
 
 class StaffLettersFragment : Fragment() {
@@ -30,10 +30,12 @@ class StaffLettersFragment : Fragment() {
     private lateinit var rvLetters: RecyclerView
     private lateinit var fabAddLetter: ExtendedFloatingActionButton
 
+    private lateinit var repository: FirebaseRepository
     private val db = FirebaseFirestore.getInstance()
     private lateinit var adapter: StaffLetterAdapter
-    private var allLetters = mutableListOf<LetterModel>()
+    private var allLetters = mutableListOf<StaffLetter>()
     private var staffUsername: String = ""
+    private var lettersListener: ListenerRegistration? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_staff_letters, container, false)
@@ -41,6 +43,8 @@ class StaffLettersFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        repository = FirebaseRepository.getInstance()
 
         val prefs = requireActivity().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
         staffUsername = prefs.getString("USER_PH", "unknown") ?: "unknown"
@@ -60,7 +64,7 @@ class StaffLettersFragment : Fragment() {
         }
         rvLetters.adapter = adapter
 
-        fetchLetters()
+        setupLettersListener()
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) { filterList() }
@@ -73,26 +77,12 @@ class StaffLettersFragment : Fragment() {
         }
     }
 
-    private fun fetchLetters() {
-        db.collection("letters")
-            .whereEqualTo("caseworker", staffUsername)
-            .orderBy("deadline", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshots, error ->
-                if (error != null || snapshots == null) return@addSnapshotListener
-
-                allLetters.clear()
-                for (doc in snapshots) {
-                    allLetters.add(LetterModel(
-                        letterId = doc.id,
-                        phNumber = doc.getString("phNumber") ?: "",
-                        studentName = doc.getString("studentName") ?: "Unknown",
-                        type = doc.getString("type") ?: "General",
-                        deadline = doc.getString("deadline") ?: "",
-                        status = doc.getString("status") ?: "PENDING"
-                    ))
-                }
-                filterList()
-            }
+    private fun setupLettersListener() {
+        lettersListener = repository.listenToStaffLetters(staffUsername) { letters ->
+            allLetters.clear()
+            allLetters.addAll(letters)
+            filterList()
+        }
     }
 
     private fun filterList() {
@@ -168,16 +158,18 @@ class StaffLettersFragment : Fragment() {
                 val phId = etPhNumber.text.toString().trim()
 
                 if (verifiedName.isNotEmpty() && deadline.isNotEmpty()) {
-                    val letterData = hashMapOf(
-                        "phNumber" to phId,
-                        "studentName" to verifiedName,
-                        "type" to type,
-                        "deadline" to deadline,
-                        "status" to "PENDING",
-                        "caseworker" to staffUsername
+                    val letter = StaffLetter(
+                        phNumber = phId,
+                        studentName = verifiedName,
+                        type = type,
+                        deadline = deadline,
+                        status = "PENDING",
+                        caseworker = staffUsername
                     )
-                    db.collection("letters").add(letterData)
-                        .addOnSuccessListener { Toast.makeText(requireContext(), "Letter Added!", Toast.LENGTH_SHORT).show() }
+                    repository.addStaffLetter(letter,
+                        onSuccess = { Toast.makeText(requireContext(), "Letter Added!", Toast.LENGTH_SHORT).show() },
+                        onFailure = { Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_SHORT).show() }
+                    )
                 } else {
                     Toast.makeText(requireContext(), "Please verify student and set a deadline.", Toast.LENGTH_SHORT).show()
                 }
@@ -186,7 +178,7 @@ class StaffLettersFragment : Fragment() {
             .show()
     }
 
-    private fun showUpdateStatusDialog(letter: LetterModel) {
+    private fun showUpdateStatusDialog(letter: StaffLetter) {
         val statuses = arrayOf("PENDING", "ON HAND", "TURN IN", "LATE")
         var selectedIndex = statuses.indexOf(letter.status.uppercase())
         if (selectedIndex == -1) selectedIndex = 0
@@ -195,13 +187,18 @@ class StaffLettersFragment : Fragment() {
             .setTitle("Update Letter Status")
             .setSingleChoiceItems(statuses, selectedIndex) { dialog, which ->
                 val newStatus = statuses[which]
-                db.collection("letters").document(letter.letterId)
-                    .update("status", newStatus)
-                    .addOnSuccessListener { Toast.makeText(requireContext(), "Status Updated", Toast.LENGTH_SHORT).show() }
+                repository.updateStaffLetterStatus(letter.id, newStatus,
+                    onSuccess = { Toast.makeText(requireContext(), "Status Updated", Toast.LENGTH_SHORT).show() },
+                    onFailure = { Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_SHORT).show() }
+                )
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
-}
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        lettersListener?.let { repository.removeListener(it) }
+    }
+}
