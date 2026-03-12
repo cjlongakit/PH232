@@ -31,6 +31,12 @@
         <activity
             android:name=".AdminDashboardActivity"
             android:exported="false" />
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".StaffDashboardActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

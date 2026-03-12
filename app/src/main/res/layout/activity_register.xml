@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_lively_purple"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create Account"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"/>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:background="@color/white">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1. Beneficiary Details" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+
+                <EditText android:id="@+id/etBenId" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="PH323 ID" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <EditText android:id="@+id/etBenFirstName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="First Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <EditText android:id="@+id/etBenLastName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Last Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <EditText android:id="@+id/etBenBirthdate" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Birthdate (MM/DD/YYYY)" android:layout_marginBottom="12dp" android:inputType="date"/>
+                <EditText android:id="@+id/etBenSchoolName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="School Name (or N/A)" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <EditText android:id="@+id/etBenSchoolAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="School Address (or N/A)" android:layout_marginBottom="12dp" android:inputType="textPostalAddress"/>
+                <EditText android:id="@+id/etBenGrade" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Grade Level (or N/A)" android:inputType="text"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:background="@color/white">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2. Guardian Details" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+
+                <EditText android:id="@+id/etGuardFirstName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="First Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <EditText android:id="@+id/etGuardLastName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Last Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <EditText android:id="@+id/etGuardMobile" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Mobile Number" android:layout_marginBottom="12dp" android:inputType="phone"/>
+                <EditText android:id="@+id/etGuardAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Home Address" android:layout_marginBottom="12dp" android:inputType="textPostalAddress"/>
+                <EditText android:id="@+id/etGuardOccupation" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Occupation" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <EditText android:id="@+id/etGuardBirthdate" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Birthdate (MM/DD/YYYY)" android:layout_marginBottom="12dp" android:inputType="date"/>
+                <EditText android:id="@+id/etGuardEmail" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Email Address" android:inputType="textEmailAddress"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            android:layout_marginBottom="24dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:background="@color/white">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3. Account Security" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+
+                <EditText android:id="@+id/etRegUsername" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Username" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <EditText android:id="@+id/etRegPassword" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Password" android:layout_marginBottom="12dp" android:inputType="textPassword"/>
+                <EditText android:id="@+id/etRegConfirmPass" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Confirm Password" android:inputType="textPassword"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubmitRegister"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Complete Registration"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:cornerRadius="16dp"
+            android:backgroundTint="@color/accent_gold"
+            android:textColor="@color/purple_dark"
+            android:layout_marginBottom="40dp"/>
+    </LinearLayout>
+</ScrollView>
+

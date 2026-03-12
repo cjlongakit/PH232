@@ -62,6 +62,7 @@ dependencies {
 
     // ZXing for QR Code Generation
     implementation("com.google.zxing:core:3.5.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // Firebase dependencies (versions managed by BoM)
     implementation(libs.firebase.analytics)
