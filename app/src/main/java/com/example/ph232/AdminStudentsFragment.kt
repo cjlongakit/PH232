@@ -9,12 +9,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class AdminStudentsFragment : Fragment() {
 
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
     private lateinit var studentsContainer: LinearLayout
+    private var studentsListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,32 +28,26 @@ class AdminStudentsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
         studentsContainer = view.findViewById(R.id.studentsContainer)
 
-        loadStudents()
+        setupStudentsListener()
     }
 
-    private fun loadStudents() {
-        db.collection("students")
-            .get()
-            .addOnSuccessListener { result ->
-                studentsContainer.removeAllViews()
+    private fun setupStudentsListener() {
+        // Use real-time listener for automatic sync
+        studentsListener = repository.listenToStudents { students ->
+            studentsContainer.removeAllViews()
 
-                if (result.isEmpty) {
-                    addEmptyStateView()
-                    return@addOnSuccessListener
-                }
-
-                for (document in result) {
-                    val student = document.toObject(Student::class.java).copy(id = document.id)
-                    addStudentCard(student)
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading students: ${e.message}", Toast.LENGTH_SHORT).show()
+            if (students.isEmpty()) {
                 addEmptyStateView()
+                return@listenToStudents
             }
+
+            for (student in students) {
+                addStudentCard(student)
+            }
+        }
     }
 
     private fun addStudentCard(student: Student) {
@@ -84,6 +79,12 @@ class AdminStudentsFragment : Fragment() {
             setTextColor(resources.getColor(R.color.gray_text, null))
         }
 
+        val emailView = TextView(requireContext()).apply {
+            text = "Email: ${student.email.ifEmpty { "N/A" }}"
+            textSize = 12f
+            setTextColor(resources.getColor(R.color.gray_text, null))
+        }
+
         val sectionView = TextView(requireContext()).apply {
             text = "Section: ${student.section.ifEmpty { "N/A" }} | Year: ${student.year.ifEmpty { "N/A" }}"
             textSize = 12f
@@ -104,6 +105,7 @@ class AdminStudentsFragment : Fragment() {
 
         contentLayout.addView(nameView)
         contentLayout.addView(idView)
+        contentLayout.addView(emailView)
         contentLayout.addView(sectionView)
         contentLayout.addView(statusView)
         cardView.addView(contentLayout)
@@ -118,5 +120,10 @@ class AdminStudentsFragment : Fragment() {
             setPadding(0, 32, 0, 32)
         }
         studentsContainer.addView(textView)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        studentsListener?.remove()
     }
 }

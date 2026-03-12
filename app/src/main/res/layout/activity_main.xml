@@ -87,18 +87,25 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/white"
                     app:boxCornerRadiusBottomEnd="8dp"
                     app:boxCornerRadiusBottomStart="8dp"
                     app:boxCornerRadiusTopEnd="8dp"
                     app:boxCornerRadiusTopStart="8dp"
-                    app:startIconDrawable="@android:drawable/ic_menu_myplaces">
+                    app:boxStrokeColor="@color/text_input_box_stroke"
+                    app:hintTextColor="@color/gray_text"
+                    app:startIconDrawable="@android:drawable/ic_menu_myplaces"
+                    app:startIconTint="@color/gray_text">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etPH"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="PH-"
-                        android:inputType="text" />
+                        android:inputType="text"
+                        android:textColor="@color/black"
+                        android:textColorHint="@color/gray_text"
+                        android:background="@color/white" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -108,19 +115,27 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/white"
                     app:boxCornerRadiusBottomEnd="8dp"
                     app:boxCornerRadiusBottomStart="8dp"
                     app:boxCornerRadiusTopEnd="8dp"
                     app:boxCornerRadiusTopStart="8dp"
+                    app:boxStrokeColor="@color/text_input_box_stroke"
+                    app:hintTextColor="@color/gray_text"
                     app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
-                    app:endIconMode="password_toggle">
+                    app:startIconTint="@color/gray_text"
+                    app:endIconMode="password_toggle"
+                    app:endIconTint="@color/gray_text">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etPassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Password"
-                        android:inputType="textPassword" />
+                        android:inputType="textPassword"
+                        android:textColor="@color/black"
+                        android:textColorHint="@color/gray_text"
+                        android:background="@color/white" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 

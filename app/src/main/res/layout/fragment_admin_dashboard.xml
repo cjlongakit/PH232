@@ -6,7 +6,7 @@
     android:padding="20dp"
     android:background="@color/white">
 
-    <!-- Add Student and Create Event Buttons -->
+    <!-- Add Student, Create Event, Add Letter Buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -20,8 +20,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Add Student"
+            android:textSize="11sp"
             android:backgroundTint="@color/purple_500"
-            android:layout_marginEnd="5dp"/>
+            android:layout_marginEnd="4dp"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCreateEvent"
@@ -29,8 +30,19 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Create Event"
+            android:textSize="11sp"
             android:backgroundTint="@color/purple_500"
-            android:layout_marginStart="5dp"/>
+            android:layout_marginHorizontal="4dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddLetter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add Letter"
+            android:textSize="11sp"
+            android:backgroundTint="@color/purple_500"
+            android:layout_marginStart="4dp"/>
 
     </LinearLayout>
 

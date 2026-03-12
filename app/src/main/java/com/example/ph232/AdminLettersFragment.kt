@@ -9,12 +9,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class AdminLettersFragment : Fragment() {
 
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
     private lateinit var lettersContainer: LinearLayout
+    private var lettersListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,32 +28,26 @@ class AdminLettersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
         lettersContainer = view.findViewById(R.id.lettersContainer)
 
-        loadLetters()
+        setupLettersListener()
     }
 
-    private fun loadLetters() {
-        db.collection("letters")
-            .get()
-            .addOnSuccessListener { result ->
-                lettersContainer.removeAllViews()
+    private fun setupLettersListener() {
+        // Use real-time listener for automatic sync
+        lettersListener = repository.listenToLetters { letters ->
+            lettersContainer.removeAllViews()
 
-                if (result.isEmpty) {
-                    addEmptyStateView()
-                    return@addOnSuccessListener
-                }
-
-                for (document in result) {
-                    val letter = document.toObject(Letter::class.java).copy(id = document.id)
-                    addLetterCard(letter)
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading letters: ${e.message}", Toast.LENGTH_SHORT).show()
+            if (letters.isEmpty()) {
                 addEmptyStateView()
+                return@listenToLetters
             }
+
+            for (letter in letters) {
+                addLetterCard(letter)
+            }
+        }
     }
 
     private fun addLetterCard(letter: Letter) {
@@ -78,6 +73,12 @@ class AdminLettersFragment : Fragment() {
             setTypeface(null, android.graphics.Typeface.BOLD)
         }
 
+        val studentView = TextView(requireContext()).apply {
+            text = "Student: ${letter.studentName.ifEmpty { letter.studentId.ifEmpty { "All Students" } }}"
+            textSize = 14f
+            setTextColor(resources.getColor(R.color.purple_primary, null))
+        }
+
         val deadlineView = TextView(requireContext()).apply {
             text = "Deadline: ${letter.deadline.ifEmpty { "No deadline set" }}"
             textSize = 14f
@@ -89,7 +90,7 @@ class AdminLettersFragment : Fragment() {
             textSize = 12f
             setTextColor(
                 when (letter.status.lowercase()) {
-                    "turned in", "completed" -> resources.getColor(R.color.status_turned_in, null)
+                    "turned in", "turned_in", "completed" -> resources.getColor(R.color.status_turned_in, null)
                     "on hand", "pending" -> resources.getColor(R.color.status_on_hand, null)
                     else -> resources.getColor(R.color.gray_text, null)
                 }
@@ -103,6 +104,7 @@ class AdminLettersFragment : Fragment() {
         }
 
         contentLayout.addView(nameView)
+        contentLayout.addView(studentView)
         contentLayout.addView(deadlineView)
         contentLayout.addView(statusView)
         contentLayout.addView(dateCreatedView)
@@ -118,5 +120,10 @@ class AdminLettersFragment : Fragment() {
             setPadding(0, 32, 0, 32)
         }
         lettersContainer.addView(textView)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        lettersListener?.remove()
     }
 }

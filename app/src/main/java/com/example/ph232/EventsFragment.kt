@@ -11,7 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -22,12 +22,13 @@ class EventsFragment : Fragment() {
     private lateinit var btnNextMonth: ImageButton
     private lateinit var rvCalendar: RecyclerView
     private lateinit var rvUpcomingEvents: RecyclerView
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
 
     private var currentCalendar = Calendar.getInstance()
     private lateinit var calendarAdapter: CalendarAdapter
     private var events = mutableListOf<Event>()
     private var eventDays = mutableSetOf<Int>()
+    private var eventsListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,7 +41,7 @@ class EventsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
 
         tvMonthYear = view.findViewById(R.id.tvMonthYear)
         btnPrevMonth = view.findViewById(R.id.btnPrevMonth)
@@ -56,8 +57,8 @@ class EventsFragment : Fragment() {
         rvUpcomingEvents.layoutManager = LinearLayoutManager(requireContext())
         rvUpcomingEvents.adapter = EventsAdapter(events)
 
-        // Load events from Firestore
-        loadEvents()
+        // Setup real-time listener for events
+        setupEventsListener()
 
         // Month navigation
         btnPrevMonth.setOnClickListener {
@@ -75,30 +76,23 @@ class EventsFragment : Fragment() {
         }
     }
 
-    private fun loadEvents() {
-        db.collection("events")
-            .get()
-            .addOnSuccessListener { result ->
-                events.clear()
-                eventDays.clear()
+    private fun setupEventsListener() {
+        // Use real-time listener for automatic sync
+        eventsListener = repository.listenToEvents { eventsList ->
+            events.clear()
+            eventDays.clear()
 
-                for (document in result) {
-                    val event = document.toObject(Event::class.java).copy(id = document.id)
-                    events.add(event)
-
-                    // Parse the date to get the day for calendar highlighting
-                    parseEventDate(event.date)
-                }
-
-                // Update upcoming events list
-                rvUpcomingEvents.adapter = EventsAdapter(events)
-
-                // Update calendar with event days
-                updateEventDaysForMonth()
+            for (event in eventsList) {
+                events.add(event)
+                parseEventDate(event.date)
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading events: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+
+            // Update upcoming events list
+            rvUpcomingEvents.adapter = EventsAdapter(events)
+
+            // Update calendar with event days
+            updateEventDaysForMonth()
+        }
     }
 
     private fun parseEventDate(dateStr: String) {
@@ -187,6 +181,11 @@ class EventsFragment : Fragment() {
         }
 
         return days
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        eventsListener?.remove()
     }
 }
 

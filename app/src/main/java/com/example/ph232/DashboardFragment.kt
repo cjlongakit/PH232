@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,7 +22,11 @@ class DashboardFragment : Fragment() {
     private lateinit var tvNextEventDetails: TextView
     private lateinit var eventStatusIndicator: View
     private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
+
+    private var lettersListener: ListenerRegistration? = null
+    private var eventsListener: ListenerRegistration? = null
+    private var studentId: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,12 +48,14 @@ class DashboardFragment : Fragment() {
         eventStatusIndicator = view.findViewById(R.id.eventStatusIndicator)
 
         sharedPreferences = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
+        studentId = sharedPreferences.getString("USER_PH", "") ?: ""
 
-        // Load user data and dashboard stats
+        // Load user greeting
         loadUserGreeting()
-        loadDashboardStats()
-        loadNextEvent()
+
+        // Setup real-time listeners
+        setupDashboardListeners()
     }
 
     private fun loadUserGreeting() {
@@ -58,91 +64,64 @@ class DashboardFragment : Fragment() {
         tvGreeting.text = "Hello, $firstName!!"
     }
 
-    private fun loadDashboardStats() {
-        val studentId = sharedPreferences.getString("USER_PH", "") ?: ""
+    private fun setupDashboardListeners() {
+        // Listen to letters for real-time updates
+        lettersListener = repository.listenToLetters { letters ->
+            // Filter letters for this student
+            val studentLetters = if (studentId.isNotEmpty()) {
+                letters.filter { it.studentId == studentId || it.studentId.isEmpty() }
+            } else {
+                letters
+            }
 
-        // Load letters count (pending and turned in)
-        if (studentId.isNotEmpty()) {
-            // Get pending letters count
-            db.collection("letters")
-                .whereEqualTo("studentId", studentId)
-                .whereEqualTo("status", "pending")
-                .get()
-                .addOnSuccessListener { result ->
-                    val pendingCount = result.size()
-                    tvCurrentStatus.text = "$pendingCount Letter Pending"
-                }
-                .addOnFailureListener {
-                    tvCurrentStatus.text = "0 Letter Pending"
-                }
+            var pendingCount = 0
+            var turnedInCount = 0
 
-            // Get turned in letters count
-            db.collection("letters")
-                .whereEqualTo("studentId", studentId)
-                .whereEqualTo("status", "turned_in")
-                .get()
-                .addOnSuccessListener { result ->
-                    tvTurnedInCount.text = result.size().toString()
+            for (letter in studentLetters) {
+                val status = letter.status.lowercase()
+                when {
+                    status == "turned in" || status == "turned_in" || status == "completed" || letter.isCompleted -> turnedInCount++
+                    status == "pending" || status == "on hand" -> pendingCount++
+                    else -> pendingCount++ // Default to pending
                 }
-                .addOnFailureListener {
-                    tvTurnedInCount.text = "0"
-                }
+            }
+
+            tvCurrentStatus.text = "$pendingCount Letter Pending"
+            tvTurnedInCount.text = turnedInCount.toString()
         }
 
-        // Get upcoming events count
-        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        db.collection("events")
-            .whereGreaterThanOrEqualTo("date", currentDate)
-            .get()
-            .addOnSuccessListener { result ->
-                tvUpcomingEventsCount.text = result.size().toString()
-            }
-            .addOnFailureListener {
-                tvUpcomingEventsCount.text = "0"
-            }
-    }
+        // Listen to upcoming events for real-time updates
+        eventsListener = repository.listenToUpcomingEvents { events ->
+            tvUpcomingEventsCount.text = events.size.toString()
 
-    private fun loadNextEvent() {
-        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            // Get the next upcoming event
+            if (events.isNotEmpty()) {
+                val nextEvent = events.first()
+                val eventDate = nextEvent.date
+                val eventName = nextEvent.name.ifEmpty { nextEvent.title.ifEmpty { "Event" } }
 
-        db.collection("events")
-            .whereGreaterThanOrEqualTo("date", currentDate)
-            .orderBy("date")
-            .limit(1)
-            .get()
-            .addOnSuccessListener { result ->
-                if (!result.isEmpty) {
-                    val event = result.documents[0]
-                    val eventDate = event.getString("date") ?: ""
-                    val eventName = event.getString("name") ?: event.getString("title") ?: "Event"
-
-                    // Format the date for display
-                    try {
-                        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        val outputFormat = SimpleDateFormat("EEEE MMM dd, yyyy", Locale.getDefault())
-                        val date = inputFormat.parse(eventDate)
-                        val formattedDate = if (date != null) outputFormat.format(date) else eventDate
-                        tvNextEventDetails.text = "$formattedDate: $eventName"
-                        eventStatusIndicator.visibility = View.VISIBLE
-                    } catch (e: Exception) {
-                        tvNextEventDetails.text = "$eventDate: $eventName"
-                        eventStatusIndicator.visibility = View.VISIBLE
-                    }
-                } else {
-                    tvNextEventDetails.text = "No upcoming events"
-                    eventStatusIndicator.visibility = View.GONE
+                // Format the date for display
+                try {
+                    val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val outputFormat = SimpleDateFormat("EEEE MMM dd, yyyy", Locale.getDefault())
+                    val date = inputFormat.parse(eventDate)
+                    val formattedDate = if (date != null) outputFormat.format(date) else eventDate
+                    tvNextEventDetails.text = "$formattedDate: $eventName"
+                    eventStatusIndicator.visibility = View.VISIBLE
+                } catch (e: Exception) {
+                    tvNextEventDetails.text = "$eventDate: $eventName"
+                    eventStatusIndicator.visibility = View.VISIBLE
                 }
-            }
-            .addOnFailureListener {
+            } else {
                 tvNextEventDetails.text = "No upcoming events"
                 eventStatusIndicator.visibility = View.GONE
             }
+        }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Refresh data when fragment becomes visible
-        loadDashboardStats()
-        loadNextEvent()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        lettersListener?.remove()
+        eventsListener?.remove()
     }
 }

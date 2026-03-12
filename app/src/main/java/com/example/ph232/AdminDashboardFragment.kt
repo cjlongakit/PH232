@@ -10,19 +10,24 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class AdminDashboardFragment : Fragment() {
 
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
     private lateinit var tvTotalLetters: TextView
     private lateinit var tvTurnedIn: TextView
     private lateinit var tvOnHand: TextView
     private lateinit var tvUpcomingEvents: TextView
     private lateinit var btnAddStudent: MaterialButton
     private lateinit var btnCreateEvent: MaterialButton
+    private lateinit var btnAddLetter: MaterialButton
     private lateinit var eventsContainer: LinearLayout
     private lateinit var recentlyContainer: LinearLayout
+
+    private var lettersListener: ListenerRegistration? = null
+    private var eventsListener: ListenerRegistration? = null
+    private var attendanceListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,7 +40,7 @@ class AdminDashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
 
         // Initialize views
         tvTotalLetters = view.findViewById(R.id.tvTotalLetters)
@@ -44,85 +49,111 @@ class AdminDashboardFragment : Fragment() {
         tvUpcomingEvents = view.findViewById(R.id.tvUpcomingEvents)
         btnAddStudent = view.findViewById(R.id.btnAddStudent)
         btnCreateEvent = view.findViewById(R.id.btnCreateEvent)
+        btnAddLetter = view.findViewById(R.id.btnAddLetter)
         eventsContainer = view.findViewById(R.id.eventsContainer)
         recentlyContainer = view.findViewById(R.id.recentlyContainer)
 
-        // Load data from Firestore
-        loadDashboardData()
+        // Setup real-time listeners for dashboard data
+        setupDashboardListeners()
 
         // Button click listeners
         btnAddStudent.setOnClickListener {
-            Toast.makeText(requireContext(), "Add Student feature coming soon", Toast.LENGTH_SHORT).show()
+            showAddStudentDialog()
         }
 
         btnCreateEvent.setOnClickListener {
-            Toast.makeText(requireContext(), "Create Event feature coming soon", Toast.LENGTH_SHORT).show()
+            showCreateEventDialog()
+        }
+
+        btnAddLetter.setOnClickListener {
+            showAddLetterDialog()
         }
     }
 
-    private fun loadDashboardData() {
-        // Load letters data with status counts
-        db.collection("letters")
-            .get()
-            .addOnSuccessListener { result ->
-                val total = result.size()
-                var turnedIn = 0
-                var onHand = 0
+    private fun showAddStudentDialog() {
+        val dialog = AddStudentDialog.newInstance()
+        dialog.setOnStudentAddedListener { success, message ->
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        }
+        dialog.show(parentFragmentManager, "AddStudentDialog")
+    }
 
-                for (document in result) {
-                    val status = document.getString("status") ?: ""
-                    when (status.lowercase()) {
-                        "turned in", "completed" -> turnedIn++
-                        "on hand", "pending" -> onHand++
-                    }
-                }
+    private fun showCreateEventDialog() {
+        val dialog = CreateEventDialog.newInstance()
+        dialog.setOnEventCreatedListener { success, message, qrCode ->
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        }
+        dialog.show(parentFragmentManager, "CreateEventDialog")
+    }
 
-                tvTotalLetters.text = total.toString()
-                tvTurnedIn.text = turnedIn.toString()
-                tvOnHand.text = onHand.toString()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading letters: ${e.message}", Toast.LENGTH_SHORT).show()
-                tvTotalLetters.text = "0"
-                tvTurnedIn.text = "0"
-                tvOnHand.text = "0"
-            }
+    private fun showAddLetterDialog() {
+        val dialog = AddLetterDialog.newInstance()
+        dialog.setOnLetterAddedListener { success, message ->
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        }
+        dialog.show(parentFragmentManager, "AddLetterDialog")
+    }
 
-        // Load events data
-        db.collection("events")
-            .get()
-            .addOnSuccessListener { result ->
-                tvUpcomingEvents.text = result.size().toString()
+    private fun setupDashboardListeners() {
+        // Listen to letters for real-time updates
+        lettersListener = repository.listenToLetters { letters ->
+            val total = letters.size
+            var turnedIn = 0
+            var onHand = 0
 
-                // Clear container and add event items
-                eventsContainer.removeAllViews()
-                for (document in result) {
-                    val eventName = document.getString("name") ?: "Unknown Event"
-                    val eventDate = document.getString("date") ?: ""
-                    addEventToContainer(eventName, eventDate)
+            for (letter in letters) {
+                when (letter.status.lowercase()) {
+                    "turned in", "turned_in", "completed" -> turnedIn++
+                    "on hand", "pending" -> onHand++
                 }
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading events: ${e.message}", Toast.LENGTH_SHORT).show()
-                tvUpcomingEvents.text = "0"
+
+            tvTotalLetters.text = total.toString()
+            tvTurnedIn.text = turnedIn.toString()
+            tvOnHand.text = onHand.toString()
+        }
+
+        // Listen to events for real-time updates
+        eventsListener = repository.listenToUpcomingEvents { events ->
+            tvUpcomingEvents.text = events.size.toString()
+
+            // Clear container and add event items
+            eventsContainer.removeAllViews()
+            for (event in events.take(5)) { // Show only first 5 events
+                val eventName = event.name.ifEmpty { event.title.ifEmpty { "Unknown Event" } }
+                val eventDate = event.date.ifEmpty { "" }
+                addEventToContainer(eventName, eventDate)
             }
 
-        // Load recent attendance data
-        db.collection("attendance")
-            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .limit(5)
-            .get()
-            .addOnSuccessListener { result ->
-                recentlyContainer.removeAllViews()
-                for (document in result) {
-                    val studentId = document.getString("studentId") ?: "Unknown"
-                    val date = document.getString("date") ?: ""
-                    addRecentAttendanceToContainer(studentId, date)
+            if (events.isEmpty()) {
+                val textView = TextView(requireContext()).apply {
+                    text = "No upcoming events"
+                    textSize = 14f
+                    setPadding(0, 8, 0, 8)
                 }
+                eventsContainer.addView(textView)
             }
-            .addOnFailureListener { e ->
-                // Silent fail for recent attendance
+        }
+
+        // Listen to attendance for real-time updates
+        attendanceListener = repository.listenToAttendance { attendanceList ->
+            recentlyContainer.removeAllViews()
+            for (attendance in attendanceList.take(5)) { // Show only first 5 recent attendance
+                val studentName = attendance.studentName.ifEmpty { "PH ${attendance.studentId}" }
+                val eventName = attendance.eventName.ifEmpty { "Event" }
+                val date = attendance.date
+                addRecentAttendanceToContainer(studentName, eventName, date)
             }
+
+            if (attendanceList.isEmpty()) {
+                val textView = TextView(requireContext()).apply {
+                    text = "No recent attendance"
+                    textSize = 14f
+                    setPadding(0, 8, 0, 8)
+                }
+                recentlyContainer.addView(textView)
+            }
+        }
     }
 
     private fun addEventToContainer(name: String, date: String) {
@@ -134,12 +165,19 @@ class AdminDashboardFragment : Fragment() {
         eventsContainer.addView(textView)
     }
 
-    private fun addRecentAttendanceToContainer(studentId: String, date: String) {
+    private fun addRecentAttendanceToContainer(studentName: String, eventName: String, date: String) {
         val textView = TextView(requireContext()).apply {
-            text = "PH $studentId attended on $date"
+            text = "$studentName attended $eventName on $date"
             textSize = 14f
             setPadding(0, 8, 0, 8)
         }
         recentlyContainer.addView(textView)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        lettersListener?.remove()
+        eventsListener?.remove()
+        attendanceListener?.remove()
     }
 }

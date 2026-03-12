@@ -135,7 +135,8 @@ class DashboardActivity : AppCompatActivity() {
 
     private fun showQrScannerDialog() {
         val studentId = sharedPreferences.getString("USER_PH", "Unknown") ?: "Unknown"
-        val dialog = QrScannerDialog.newInstance(studentId)
+        val studentName = sharedPreferences.getString("USER_NAME", "") ?: ""
+        val dialog = QrScannerDialog.newInstance(studentId, studentName)
         dialog.setOnAttendanceRecordedListener { success, message ->
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }

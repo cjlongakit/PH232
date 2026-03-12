@@ -27,16 +27,18 @@ class QrGeneratorDialog : DialogFragment() {
     private lateinit var ivQrCode: ImageView
     private lateinit var btnNewCode: MaterialButton
     private lateinit var btnClose: MaterialButton
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
 
     private var currentQrCode: String = ""
     private var eventName: String = "Attendance"
+    private var eventId: String = ""
 
     companion object {
-        fun newInstance(eventName: String = "Attendance"): QrGeneratorDialog {
+        fun newInstance(eventName: String = "Attendance", eventId: String = ""): QrGeneratorDialog {
             return QrGeneratorDialog().apply {
                 arguments = Bundle().apply {
                     putString("EVENT_NAME", eventName)
+                    putString("EVENT_ID", eventId)
                 }
             }
         }
@@ -45,6 +47,7 @@ class QrGeneratorDialog : DialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         eventName = arguments?.getString("EVENT_NAME") ?: "Attendance"
+        eventId = arguments?.getString("EVENT_ID") ?: ""
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -71,13 +74,18 @@ class QrGeneratorDialog : DialogFragment() {
         btnNewCode = view.findViewById(R.id.btnNewCode)
         btnClose = view.findViewById(R.id.btnClose)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
 
         // Set event name
         tvEventName.text = eventName
 
-        // Generate initial QR code
-        generateNewQrCode()
+        // If we have an eventId, try to load existing QR code first
+        if (eventId.isNotEmpty()) {
+            loadExistingQrCode()
+        } else {
+            // Generate new QR code
+            generateNewQrCode()
+        }
 
         // New code button
         btnNewCode.setOnClickListener {
@@ -88,6 +96,32 @@ class QrGeneratorDialog : DialogFragment() {
         btnClose.setOnClickListener {
             dismiss()
         }
+    }
+
+    private fun loadExistingQrCode() {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("events").document(eventId)
+            .get()
+            .addOnSuccessListener { document ->
+                val existingQrCode = document.getString("qrCode") ?: ""
+                if (existingQrCode.isNotEmpty()) {
+                    currentQrCode = existingQrCode
+                    tvQrCodeValue.text = "Code: $currentQrCode"
+                    try {
+                        val qrBitmap = generateQrBitmap(currentQrCode, 512)
+                        ivQrCode.setImageBitmap(qrBitmap)
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "Error displaying QR code", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    // No existing QR code, generate new one
+                    generateNewQrCode()
+                }
+            }
+            .addOnFailureListener {
+                // Error loading, generate new one
+                generateNewQrCode()
+            }
     }
 
     override fun onStart() {
@@ -101,8 +135,8 @@ class QrGeneratorDialog : DialogFragment() {
     private fun generateNewQrCode() {
         // Generate unique QR code with timestamp and random component
         val timestamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
-        val random = (1000..9999).random()
-        currentQrCode = "PH232_ATT_${timestamp}_$random"
+        val random = UUID.randomUUID().toString().take(8)
+        currentQrCode = "EVENT_${timestamp}_$random"
 
         // Update UI
         tvQrCodeValue.text = "Code: $currentQrCode"
@@ -112,8 +146,8 @@ class QrGeneratorDialog : DialogFragment() {
             val qrBitmap = generateQrBitmap(currentQrCode, 512)
             ivQrCode.setImageBitmap(qrBitmap)
 
-            // Save QR code to Firestore for tracking
-            saveQrCodeToFirestore()
+            // Save QR code with event to Firestore
+            saveEventWithQrCode()
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Error generating QR code: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -133,9 +167,52 @@ class QrGeneratorDialog : DialogFragment() {
         return bitmap
     }
 
+    private fun saveEventWithQrCode() {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+        if (eventId.isNotEmpty()) {
+            // Update existing event with new QR code
+            repository.updateEvent(
+                eventId = eventId,
+                updates = mapOf("qrCode" to currentQrCode),
+                onSuccess = {
+                    Toast.makeText(requireContext(), "QR code updated for event", Toast.LENGTH_SHORT).show()
+                },
+                onFailure = { e ->
+                    // Silent fail - QR code will still work locally
+                }
+            )
+        } else {
+            // Create a new temporary event for attendance tracking
+            val event = Event(
+                name = eventName,
+                title = eventName,
+                date = currentDate,
+                time = currentTime,
+                qrCode = currentQrCode,
+                isActive = true,
+                createdBy = "admin"
+            )
+
+            repository.addEvent(
+                event = event,
+                onSuccess = { newEventId ->
+                    eventId = newEventId
+                    Toast.makeText(requireContext(), "QR code generated successfully", Toast.LENGTH_SHORT).show()
+                },
+                onFailure = { e ->
+                    // Fallback: Save QR code to a separate collection
+                    saveQrCodeToFirestore()
+                }
+            )
+        }
+    }
+
     private fun saveQrCodeToFirestore() {
         val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val db = FirebaseFirestore.getInstance()
 
         val qrCodeData = mapOf(
             "qrCode" to currentQrCode,

@@ -21,11 +21,10 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -36,21 +35,23 @@ class QrScannerDialog : DialogFragment() {
     private lateinit var btnCancel: MaterialButton
     private lateinit var scanLine: View
     private lateinit var cameraExecutor: ExecutorService
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
 
     private var camera: Camera? = null
     private var isFlashOn = false
     private var lastScannedQR = ""
     private var lastScanTime = 0L
     private var studentId: String = ""
+    private var studentName: String = ""
 
     private var onAttendanceRecorded: ((Boolean, String) -> Unit)? = null
 
     companion object {
-        fun newInstance(studentId: String): QrScannerDialog {
+        fun newInstance(studentId: String, studentName: String = ""): QrScannerDialog {
             return QrScannerDialog().apply {
                 arguments = Bundle().apply {
                     putString("STUDENT_ID", studentId)
+                    putString("STUDENT_NAME", studentName)
                 }
             }
         }
@@ -63,6 +64,7 @@ class QrScannerDialog : DialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         studentId = arguments?.getString("STUDENT_ID") ?: "Unknown"
+        studentName = arguments?.getString("STUDENT_NAME") ?: ""
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -89,7 +91,7 @@ class QrScannerDialog : DialogFragment() {
         scanLine = view.findViewById(R.id.scanLine)
 
         cameraExecutor = Executors.newSingleThreadExecutor()
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
 
         // Start scan line animation
         startScanLineAnimation()
@@ -116,8 +118,9 @@ class QrScannerDialog : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
+        // Set dialog to be wider and tall enough for camera
         dialog?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.widthPixels * 0.95).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
     }
@@ -134,37 +137,43 @@ class QrScannerDialog : DialogFragment() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
 
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(cameraPreview.surfaceProvider)
-                }
-
-            val imageAnalyzer = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, QRCodeAnalyzer { qrCode ->
-                        activity?.runOnUiThread {
-                            handleQRCodeScanned(qrCode)
-                        }
-                    })
-                }
-
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             try {
+                val cameraProvider = cameraProviderFuture.get()
+
+                val preview = Preview.Builder()
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(cameraPreview.surfaceProvider)
+                    }
+
+                val imageAnalyzer = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(1280, 720))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        it.setAnalyzer(cameraExecutor, QRCodeAnalyzer { qrCode ->
+                            activity?.runOnUiThread {
+                                handleQRCodeScanned(qrCode)
+                            }
+                        })
+                    }
+
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                // Unbind all use cases before rebinding
                 cameraProvider.unbindAll()
+
+                // Bind camera to lifecycle
                 camera = cameraProvider.bindToLifecycle(
-                    viewLifecycleOwner,
+                    this, // Use DialogFragment as lifecycle owner
                     cameraSelector,
                     preview,
                     imageAnalyzer
                 )
+
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Failed to start camera", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Failed to start camera: ${e.message}", Toast.LENGTH_LONG).show()
+                e.printStackTrace()
             }
 
         }, ContextCompat.getMainExecutor(requireContext()))
@@ -176,47 +185,70 @@ class QrScannerDialog : DialogFragment() {
         if (qrCode != lastScannedQR || currentTime - lastScanTime > 3000) {
             lastScannedQR = qrCode
             lastScanTime = currentTime
+
+            // Show toast that QR was detected
+            Toast.makeText(requireContext(), "QR Detected: $qrCode", Toast.LENGTH_SHORT).show()
+
             recordAttendance(qrCode)
         }
     }
 
     private fun recordAttendance(eventQR: String) {
-        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-
-        // Check if attendance already exists for this student, event, and date
-        db.collection("attendance")
-            .whereEqualTo("studentId", studentId)
-            .whereEqualTo("eventQR", eventQR)
-            .whereEqualTo("date", currentDate)
-            .get()
-            .addOnSuccessListener { result ->
-                if (result.isEmpty) {
-                    // No duplicate found, record attendance
-                    val attendanceData = mapOf(
-                        "studentId" to studentId,
-                        "eventQR" to eventQR,
-                        "date" to currentDate,
-                        "time" to currentTime,
-                        "timestamp" to System.currentTimeMillis()
+        // First, try to find the event by QR code to get event details
+        repository.getEventByQRCode(eventQR,
+            onSuccess = { event ->
+                if (event != null) {
+                    // Event found, record attendance with full details
+                    repository.recordAttendance(
+                        studentId = studentId,
+                        studentName = studentName,
+                        eventId = event.id,
+                        eventName = event.name.ifEmpty { event.title },
+                        eventQR = eventQR,
+                        onSuccess = { attendanceId ->
+                            onAttendanceRecorded?.invoke(true, "Attendance recorded successfully for ${event.name.ifEmpty { event.title }}!")
+                            dismiss()
+                        },
+                        onFailure = { e ->
+                            onAttendanceRecorded?.invoke(false, e.message ?: "Error recording attendance")
+                        }
                     )
-
-                    db.collection("attendance")
-                        .add(attendanceData)
-                        .addOnSuccessListener {
+                } else {
+                    // Event not found but still record with QR code
+                    repository.recordAttendance(
+                        studentId = studentId,
+                        studentName = studentName,
+                        eventId = "",
+                        eventName = "Unknown Event",
+                        eventQR = eventQR,
+                        onSuccess = { attendanceId ->
                             onAttendanceRecorded?.invoke(true, "Attendance recorded successfully!")
                             dismiss()
+                        },
+                        onFailure = { e ->
+                            onAttendanceRecorded?.invoke(false, e.message ?: "Error recording attendance")
                         }
-                        .addOnFailureListener { e ->
-                            onAttendanceRecorded?.invoke(false, "Error: ${e.message}")
-                        }
-                } else {
-                    onAttendanceRecorded?.invoke(false, "Attendance already recorded for today!")
+                    )
                 }
+            },
+            onFailure = { e ->
+                // Error finding event, try to record anyway
+                repository.recordAttendance(
+                    studentId = studentId,
+                    studentName = studentName,
+                    eventId = "",
+                    eventName = "Event",
+                    eventQR = eventQR,
+                    onSuccess = { attendanceId ->
+                        onAttendanceRecorded?.invoke(true, "Attendance recorded successfully!")
+                        dismiss()
+                    },
+                    onFailure = { ex ->
+                        onAttendanceRecorded?.invoke(false, ex.message ?: "Error recording attendance")
+                    }
+                )
             }
-            .addOnFailureListener { e ->
-                onAttendanceRecorded?.invoke(false, "Error checking attendance: ${e.message}")
-            }
+        )
     }
 
     private fun toggleFlash() {
@@ -236,26 +268,45 @@ class QrScannerDialog : DialogFragment() {
 
     // QR Code Analyzer
     private class QRCodeAnalyzer(private val onQRCodeDetected: (String) -> Unit) : ImageAnalysis.Analyzer {
-        private val scanner = BarcodeScanning.getClient()
-        private var lastAnalyzedTimestamp = 0L
+        // Configure scanner to only look for QR codes
+        private val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+        private val scanner = BarcodeScanning.getClient(options)
+        private var isScanning = false
 
         @androidx.camera.core.ExperimentalGetImage
         override fun analyze(imageProxy: ImageProxy) {
-            val currentTimestamp = System.currentTimeMillis()
-            if (currentTimestamp - lastAnalyzedTimestamp >= 500) {
-                imageProxy.image?.let { image ->
-                    val inputImage = InputImage.fromMediaImage(image, imageProxy.imageInfo.rotationDegrees)
-                    scanner.process(inputImage)
-                        .addOnSuccessListener { barcodes ->
-                            barcodes.firstOrNull()?.rawValue?.let { value ->
-                                onQRCodeDetected(value)
-                                lastAnalyzedTimestamp = currentTimestamp
+            if (isScanning) {
+                imageProxy.close()
+                return
+            }
+
+            val mediaImage = imageProxy.image
+            if (mediaImage != null) {
+                isScanning = true
+                val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+
+                scanner.process(inputImage)
+                    .addOnSuccessListener { barcodes ->
+                        if (barcodes.isNotEmpty()) {
+                            for (barcode in barcodes) {
+                                barcode.rawValue?.let { value ->
+                                    if (value.isNotEmpty()) {
+                                        onQRCodeDetected(value)
+                                        return@addOnSuccessListener
+                                    }
+                                }
                             }
                         }
-                        .addOnCompleteListener {
-                            imageProxy.close()
-                        }
-                } ?: imageProxy.close()
+                    }
+                    .addOnFailureListener { e ->
+                        e.printStackTrace()
+                    }
+                    .addOnCompleteListener {
+                        isScanning = false
+                        imageProxy.close()
+                    }
             } else {
                 imageProxy.close()
             }

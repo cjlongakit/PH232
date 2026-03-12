@@ -9,12 +9,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class AdminEventsFragment : Fragment() {
 
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
     private lateinit var eventsContainer: LinearLayout
+    private var eventsListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,32 +28,26 @@ class AdminEventsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
         eventsContainer = view.findViewById(R.id.eventsContainer)
 
-        loadEvents()
+        setupEventsListener()
     }
 
-    private fun loadEvents() {
-        db.collection("events")
-            .get()
-            .addOnSuccessListener { result ->
-                eventsContainer.removeAllViews()
+    private fun setupEventsListener() {
+        // Use real-time listener for automatic sync
+        eventsListener = repository.listenToEvents { events ->
+            eventsContainer.removeAllViews()
 
-                if (result.isEmpty) {
-                    addEmptyStateView()
-                    return@addOnSuccessListener
-                }
-
-                for (document in result) {
-                    val event = document.toObject(Event::class.java).copy(id = document.id)
-                    addEventCard(event)
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading events: ${e.message}", Toast.LENGTH_SHORT).show()
+            if (events.isEmpty()) {
                 addEmptyStateView()
+                return@listenToEvents
             }
+
+            for (event in events) {
+                addEventCard(event)
+            }
+        }
     }
 
     private fun addEventCard(event: Event) {
@@ -93,17 +88,49 @@ class AdminEventsFragment : Fragment() {
         }
 
         val qrView = TextView(requireContext()).apply {
-            text = "QR Code: ${event.qrCode.ifEmpty { "Not generated" }}"
+            text = if (event.qrCode.isNotEmpty()) "QR Code: Ready" else "QR Code: Not generated"
             textSize = 12f
             setTextColor(resources.getColor(R.color.purple_primary, null))
+        }
+
+        val statusView = TextView(requireContext()).apply {
+            text = if (event.isActive) "Status: Active" else "Status: Inactive"
+            textSize = 12f
+            setTextColor(
+                if (event.isActive) resources.getColor(R.color.status_turned_in, null)
+                else resources.getColor(R.color.gray_text, null)
+            )
+        }
+
+        // Show QR Button
+        val showQrButton = com.google.android.material.button.MaterialButton(requireContext()).apply {
+            text = if (event.qrCode.isNotEmpty()) "Show QR Code" else "Generate QR"
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 16
+            }
+            setOnClickListener {
+                showQrCodeDialog(event)
+            }
         }
 
         contentLayout.addView(nameView)
         contentLayout.addView(dateTimeView)
         contentLayout.addView(locationView)
         contentLayout.addView(qrView)
+        contentLayout.addView(statusView)
+        contentLayout.addView(showQrButton)
         cardView.addView(contentLayout)
         eventsContainer.addView(cardView)
+    }
+
+    private fun showQrCodeDialog(event: Event) {
+        val eventName = event.name.ifEmpty { event.title.ifEmpty { "Event" } }
+        val dialog = QrGeneratorDialog.newInstance(eventName, event.id)
+        dialog.show(parentFragmentManager, "QrGeneratorDialog")
     }
 
     private fun addEmptyStateView() {
@@ -114,5 +141,10 @@ class AdminEventsFragment : Fragment() {
             setPadding(0, 32, 0, 32)
         }
         eventsContainer.addView(textView)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        eventsListener?.remove()
     }
 }

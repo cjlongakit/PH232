@@ -1,7 +1,24 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.PH232" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <!-- Base application theme for dark mode -->
+    <style name="Base.Theme.PH232" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Force light theme even in night mode for consistent login experience -->
+        <item name="colorPrimary">@color/purple_primary</item>
+        <item name="colorPrimaryDark">@color/purple_dark</item>
+        <item name="colorAccent">@color/purple_light</item>
+
+        <!-- Text colors for visibility -->
+        <item name="android:textColorPrimary">@color/black</item>
+        <item name="android:textColorSecondary">@color/gray_text</item>
+        <item name="android:textColorHint">@color/gray_text</item>
+
+        <!-- Input field styling -->
+        <item name="colorOnSurface">@color/black</item>
+        <item name="colorOnBackground">@color/black</item>
+
+        <!-- TextInputLayout colors -->
+        <item name="boxStrokeColor">@color/purple_primary</item>
+        <item name="hintTextColor">@color/gray_text</item>
     </style>
+
+    <style name="Theme.PH232" parent="Base.Theme.PH232" />
 </resources>

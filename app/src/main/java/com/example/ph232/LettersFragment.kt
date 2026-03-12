@@ -1,5 +1,6 @@
 package com.example.ph232
 
+import android.content.Context
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
@@ -12,7 +13,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class LettersFragment : Fragment() {
 
@@ -21,11 +22,13 @@ class LettersFragment : Fragment() {
     private lateinit var tabCompleted: TextView
     private lateinit var rvLetters: RecyclerView
     private lateinit var adapter: LettersAdapter
-    private lateinit var db: FirebaseFirestore
+    private lateinit var repository: FirebaseRepository
 
     private var isToDoSelected = true
     private var pendingLetters = mutableListOf<Letter>()
     private var completedLetters = mutableListOf<Letter>()
+    private var lettersListener: ListenerRegistration? = null
+    private var studentId: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -38,7 +41,11 @@ class LettersFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db = FirebaseFirestore.getInstance()
+        repository = FirebaseRepository.getInstance()
+
+        // Get student ID from shared preferences
+        val sharedPreferences = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+        studentId = sharedPreferences.getString("USER_PH", "") ?: ""
 
         tvPendingCount = view.findViewById(R.id.tvPendingCount)
         tabToDo = view.findViewById(R.id.tabToDo)
@@ -52,8 +59,8 @@ class LettersFragment : Fragment() {
         rvLetters.layoutManager = LinearLayoutManager(requireContext())
         rvLetters.adapter = adapter
 
-        // Load letters from Firestore
-        loadLetters()
+        // Setup real-time listener for letters
+        setupLettersListener()
 
         // Tab click listeners
         tabToDo.setOnClickListener {
@@ -73,35 +80,32 @@ class LettersFragment : Fragment() {
         }
     }
 
-    private fun loadLetters() {
-        db.collection("letters")
-            .get()
-            .addOnSuccessListener { result ->
-                pendingLetters.clear()
-                completedLetters.clear()
+    private fun setupLettersListener() {
+        // Use real-time listener for automatic sync
+        lettersListener = repository.listenToLetters { letters ->
+            pendingLetters.clear()
+            completedLetters.clear()
 
-                for (document in result) {
-                    val letter = document.toObject(Letter::class.java).copy(id = document.id)
+            for (letter in letters) {
+                // Filter by student ID if available, otherwise show all
+                if (studentId.isEmpty() || letter.studentId == studentId || letter.studentId.isEmpty()) {
                     val status = letter.status.lowercase()
-
-                    if (status == "completed" || status == "turned in" || letter.isCompleted) {
+                    if (status == "completed" || status == "turned in" || status == "turned_in" || letter.isCompleted) {
                         completedLetters.add(letter.copy(isCompleted = true))
                     } else {
                         pendingLetters.add(letter.copy(isCompleted = false))
                     }
                 }
+            }
 
-                // Update UI
-                updatePendingCount(pendingLetters.size)
-                if (isToDoSelected) {
-                    adapter.updateData(pendingLetters)
-                } else {
-                    adapter.updateData(completedLetters)
-                }
+            // Update UI
+            updatePendingCount(pendingLetters.size)
+            if (isToDoSelected) {
+                adapter.updateData(pendingLetters)
+            } else {
+                adapter.updateData(completedLetters)
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error loading letters: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+        }
     }
 
     private fun markLetterAsTurnedIn(letter: Letter) {
@@ -110,20 +114,18 @@ class LettersFragment : Fragment() {
             return
         }
 
-        db.collection("letters")
-            .document(letter.id)
-            .update(mapOf(
-                "status" to "Turned In",
-                "isCompleted" to true
-            ))
-            .addOnSuccessListener {
+        repository.updateLetterStatus(
+            letterId = letter.id,
+            status = "Turned In",
+            isCompleted = true,
+            onSuccess = {
                 Toast.makeText(requireContext(), "Marked as turned in", Toast.LENGTH_SHORT).show()
-                // Reload letters to refresh the lists
-                loadLetters()
-            }
-            .addOnFailureListener { e ->
+                // No need to reload - real-time listener will update automatically
+            },
+            onFailure = { e ->
                 Toast.makeText(requireContext(), "Error updating letter: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun updatePendingCount(count: Int) {
@@ -151,6 +153,12 @@ class LettersFragment : Fragment() {
             tabToDo.setBackgroundResource(android.R.color.transparent)
             tabToDo.setTextColor(resources.getColor(R.color.black, null))
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Remove listener when view is destroyed
+        lettersListener?.remove()
     }
 }
 
