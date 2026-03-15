@@ -63,6 +63,11 @@ class AdminDashboardActivity : AppCompatActivity() {
                     loadFragment(AdminDashboardFragment())
                     true
                 }
+                R.id.nav_attendance -> {
+                    tvHeaderTitle.text = "Attendance Management"
+                    loadFragment(AdminAttendanceFragment())
+                    true
+                }
                 R.id.nav_letters -> {
                     tvHeaderTitle.text = "Letters"
                     loadFragment(AdminLettersFragment())

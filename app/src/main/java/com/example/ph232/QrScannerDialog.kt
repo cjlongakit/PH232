@@ -187,14 +187,46 @@ class QrScannerDialog : DialogFragment() {
             lastScanTime = currentTime
 
             // Show toast that QR was detected
-            Toast.makeText(requireContext(), "QR Detected: $qrCode", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "QR Detected, validating...", Toast.LENGTH_SHORT).show()
 
-            recordAttendance(qrCode)
+            // Validate against centralized QR session first
+            validateAndRecordAttendance(qrCode)
         }
     }
 
-    private fun recordAttendance(eventQR: String) {
-        // First, try to find the event by QR code to get event details
+    private fun validateAndRecordAttendance(scannedQrCode: String) {
+        // First validate if this QR code belongs to an active session
+        repository.validateQrCode(
+            scannedQrCode = scannedQrCode,
+            onSuccess = { qrSession ->
+                if (qrSession != null) {
+                    // Valid active QR session found - record attendance with log
+                    repository.recordAttendanceWithLog(
+                        studentId = studentId,
+                        studentName = studentName,
+                        qrSession = qrSession,
+                        onSuccess = { attendanceId ->
+                            onAttendanceRecorded?.invoke(true, "Attendance recorded successfully for ${qrSession.eventName}!")
+                            dismiss()
+                        },
+                        onFailure = { e ->
+                            onAttendanceRecorded?.invoke(false, e.message ?: "Error recording attendance")
+                        }
+                    )
+                } else {
+                    // No active session for this QR code - check if it's expired or invalid
+                    onAttendanceRecorded?.invoke(false, "This QR code is invalid or has expired. Please ask admin for a new code.")
+                }
+            },
+            onFailure = { e ->
+                // Validation failed, fall back to old method
+                recordAttendanceLegacy(scannedQrCode)
+            }
+        )
+    }
+
+    private fun recordAttendanceLegacy(eventQR: String) {
+        // Legacy method - fallback for old QR codes
         repository.getEventByQRCode(eventQR,
             onSuccess = { event ->
                 if (event != null) {

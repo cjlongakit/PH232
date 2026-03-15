@@ -24,4 +24,5 @@
     <color name="status_pending">#FF5252</color>
     <color name="status_active">#4CAF50</color>
     <color name="status_inactive">#9E9E9E</color>
+    <color name="accent_gold">#F59E0B</color>
 </resources>

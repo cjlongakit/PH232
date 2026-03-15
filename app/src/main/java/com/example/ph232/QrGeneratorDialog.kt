@@ -30,15 +30,20 @@ class QrGeneratorDialog : DialogFragment() {
     private lateinit var repository: FirebaseRepository
 
     private var currentQrCode: String = ""
+    private var currentSessionId: String = ""
     private var eventName: String = "Attendance"
     private var eventId: String = ""
+    private var adminId: String = ""
+    private var adminName: String = ""
 
     companion object {
-        fun newInstance(eventName: String = "Attendance", eventId: String = ""): QrGeneratorDialog {
+        fun newInstance(eventName: String = "Attendance", eventId: String = "", adminId: String = "", adminName: String = ""): QrGeneratorDialog {
             return QrGeneratorDialog().apply {
                 arguments = Bundle().apply {
                     putString("EVENT_NAME", eventName)
                     putString("EVENT_ID", eventId)
+                    putString("ADMIN_ID", adminId)
+                    putString("ADMIN_NAME", adminName)
                 }
             }
         }
@@ -48,6 +53,8 @@ class QrGeneratorDialog : DialogFragment() {
         super.onCreate(savedInstanceState)
         eventName = arguments?.getString("EVENT_NAME") ?: "Attendance"
         eventId = arguments?.getString("EVENT_ID") ?: ""
+        adminId = arguments?.getString("ADMIN_ID") ?: ""
+        adminName = arguments?.getString("ADMIN_NAME") ?: "Admin"
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -76,6 +83,13 @@ class QrGeneratorDialog : DialogFragment() {
 
         repository = FirebaseRepository.getInstance()
 
+        // Get admin info from SharedPreferences if not passed
+        if (adminId.isEmpty()) {
+            val prefs = requireActivity().getSharedPreferences("PH232_PREFS", android.content.Context.MODE_PRIVATE)
+            adminId = prefs.getString("USER_PH", "admin") ?: "admin"
+            adminName = prefs.getString("USER_NAME", "Admin") ?: "Admin"
+        }
+
         // Set event name
         tvEventName.text = eventName
 
@@ -83,8 +97,8 @@ class QrGeneratorDialog : DialogFragment() {
         if (eventId.isNotEmpty()) {
             loadExistingQrCode()
         } else {
-            // Generate new QR code
-            generateNewQrCode()
+            // Check for active session first, then generate new
+            loadActiveSessionOrGenerate()
         }
 
         // New code button
@@ -132,6 +146,30 @@ class QrGeneratorDialog : DialogFragment() {
         )
     }
 
+    private fun loadActiveSessionOrGenerate() {
+        repository.getActiveQrSession(
+            onSuccess = { session ->
+                if (session != null) {
+                    // Show existing active QR code
+                    currentQrCode = session.qrCode
+                    currentSessionId = session.id
+                    tvQrCodeValue.text = "Code: $currentQrCode (Active)"
+                    try {
+                        val qrBitmap = generateQrBitmap(currentQrCode, 512)
+                        ivQrCode.setImageBitmap(qrBitmap)
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "Error displaying QR code", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    generateNewQrCode()
+                }
+            },
+            onFailure = {
+                generateNewQrCode()
+            }
+        )
+    }
+
     private fun generateNewQrCode() {
         // Generate unique QR code with timestamp and random component
         val timestamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
@@ -146,8 +184,29 @@ class QrGeneratorDialog : DialogFragment() {
             val qrBitmap = generateQrBitmap(currentQrCode, 512)
             ivQrCode.setImageBitmap(qrBitmap)
 
-            // Save QR code with event to Firestore
-            saveEventWithQrCode()
+            // Create centralized QR session (this deactivates all previous sessions)
+            repository.createQrSession(
+                qrCode = currentQrCode,
+                eventId = eventId,
+                eventName = eventName,
+                createdBy = adminId,
+                createdByName = adminName,
+                expiresInMinutes = 120, // QR valid for 2 hours
+                onSuccess = { sessionId ->
+                    currentSessionId = sessionId
+                    Toast.makeText(requireContext(), "QR code generated and activated", Toast.LENGTH_SHORT).show()
+
+                    // Also save to events if needed
+                    if (eventId.isNotEmpty()) {
+                        saveEventWithQrCode()
+                    }
+                },
+                onFailure = { e ->
+                    Toast.makeText(requireContext(), "Warning: QR session not saved to database", Toast.LENGTH_SHORT).show()
+                    // Still save QR code locally
+                    saveQrCodeToFirestore()
+                }
+            )
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Error generating QR code: ${e.message}", Toast.LENGTH_SHORT).show()
         }

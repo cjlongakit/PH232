@@ -22,6 +22,8 @@ class FirebaseRepository private constructor() {
     private val notificationsCollection = db.collection("notifications")
     private val settingsCollection = db.collection("user_settings")
     private val adminsCollection = db.collection("admins")
+    private val qrSessionsCollection = db.collection("qr_sessions")
+    private val attendanceLogsCollection = db.collection("attendance_logs")
 
     // Active listeners for real-time updates
     private val activeListeners = mutableListOf<ListenerRegistration>()
@@ -567,6 +569,366 @@ class FirebaseRepository private constructor() {
             .addOnSuccessListener { doc ->
                 val admin = doc.toObject(Admin::class.java)?.copy(id = doc.id)
                 onSuccess(admin)
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    // ==================== QR SESSIONS (Centralized QR Management) ====================
+
+    /**
+     * Creates a new QR session and deactivates all previous sessions
+     * This ensures only ONE QR code is valid at any time
+     */
+    fun createQrSession(
+        qrCode: String,
+        eventId: String,
+        eventName: String,
+        createdBy: String,
+        createdByName: String,
+        expiresInMinutes: Int = 60,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val expiresAt = System.currentTimeMillis() + (expiresInMinutes * 60 * 1000)
+
+        // First, deactivate all existing active sessions
+        deactivateAllQrSessions(
+            onSuccess = {
+                // Create new session
+                val sessionData = hashMapOf(
+                    "qrCode" to qrCode,
+                    "eventId" to eventId,
+                    "eventName" to eventName,
+                    "createdBy" to createdBy,
+                    "createdByName" to createdByName,
+                    "isActive" to true,
+                    "expiresAt" to expiresAt,
+                    "date" to currentDate,
+                    "time" to currentTime,
+                    "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+
+                qrSessionsCollection.add(sessionData)
+                    .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+                    .addOnFailureListener { e -> onFailure(e) }
+            },
+            onFailure = { e ->
+                // Even if deactivation fails, try to create new session
+                val sessionData = hashMapOf(
+                    "qrCode" to qrCode,
+                    "eventId" to eventId,
+                    "eventName" to eventName,
+                    "createdBy" to createdBy,
+                    "createdByName" to createdByName,
+                    "isActive" to true,
+                    "expiresAt" to expiresAt,
+                    "date" to currentDate,
+                    "time" to currentTime,
+                    "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+
+                qrSessionsCollection.add(sessionData)
+                    .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+                    .addOnFailureListener { ex -> onFailure(ex) }
+            }
+        )
+    }
+
+    /**
+     * Deactivates all active QR sessions
+     */
+    private fun deactivateAllQrSessions(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        qrSessionsCollection
+            .whereEqualTo("isActive", true)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    onSuccess()
+                    return@addOnSuccessListener
+                }
+
+                val batch = db.batch()
+                for (doc in snapshot.documents) {
+                    batch.update(doc.reference, "isActive", false)
+                }
+                batch.commit()
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { e -> onFailure(e) }
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Gets the currently active QR session
+     */
+    fun getActiveQrSession(onSuccess: (QrSession?) -> Unit, onFailure: (Exception) -> Unit) {
+        qrSessionsCollection
+            .whereEqualTo("isActive", true)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val session = snapshot.documents.firstOrNull()?.let { doc ->
+                    doc.toObject(QrSession::class.java)?.copy(id = doc.id)
+                }
+                // Check if session has expired
+                if (session != null && session.expiresAt > 0 && System.currentTimeMillis() > session.expiresAt) {
+                    // Session expired, deactivate it
+                    deactivateQrSession(session.id, {}, {})
+                    onSuccess(null)
+                } else {
+                    onSuccess(session)
+                }
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Validates a scanned QR code against active sessions
+     */
+    fun validateQrCode(
+        scannedQrCode: String,
+        onSuccess: (QrSession?) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        qrSessionsCollection
+            .whereEqualTo("qrCode", scannedQrCode)
+            .whereEqualTo("isActive", true)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val session = snapshot.documents.firstOrNull()?.let { doc ->
+                    doc.toObject(QrSession::class.java)?.copy(id = doc.id)
+                }
+                // Check expiration
+                if (session != null && session.expiresAt > 0 && System.currentTimeMillis() > session.expiresAt) {
+                    deactivateQrSession(session.id, {}, {})
+                    onSuccess(null)
+                } else {
+                    onSuccess(session)
+                }
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun deactivateQrSession(sessionId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        qrSessionsCollection.document(sessionId)
+            .update("isActive", false)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun listenToActiveQrSession(onUpdate: (QrSession?) -> Unit): ListenerRegistration {
+        val listener = qrSessionsCollection
+            .whereEqualTo("isActive", true)
+            .limit(1)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val session = snapshot?.documents?.firstOrNull()?.let { doc ->
+                    doc.toObject(QrSession::class.java)?.copy(id = doc.id)
+                }
+                onUpdate(session)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    // ==================== ATTENDANCE LOGS ====================
+
+    /**
+     * Records attendance with full logging - creates both attendance record and log entry
+     */
+    fun recordAttendanceWithLog(
+        studentId: String,
+        studentName: String,
+        qrSession: QrSession,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val timestamp = System.currentTimeMillis()
+
+        // First check if attendance already exists for this student on this QR session
+        attendanceLogsCollection
+            .whereEqualTo("studentId", studentId)
+            .whereEqualTo("qrSessionId", qrSession.id)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    // Create attendance record
+                    val attendanceData = hashMapOf(
+                        "studentId" to studentId,
+                        "studentName" to studentName,
+                        "eventId" to qrSession.eventId,
+                        "eventName" to qrSession.eventName,
+                        "eventQR" to qrSession.qrCode,
+                        "date" to currentDate,
+                        "time" to currentTime,
+                        "timestamp" to timestamp,
+                        "status" to "present",
+                        "notes" to "",
+                        "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                    )
+
+                    attendanceCollection.add(attendanceData)
+                        .addOnSuccessListener { attendanceRef ->
+                            // Create detailed log entry
+                            val logData = hashMapOf(
+                                "attendanceId" to attendanceRef.id,
+                                "studentId" to studentId,
+                                "studentName" to studentName,
+                                "eventId" to qrSession.eventId,
+                                "eventName" to qrSession.eventName,
+                                "qrSessionId" to qrSession.id,
+                                "qrCode" to qrSession.qrCode,
+                                "scanDate" to currentDate,
+                                "scanTime" to currentTime,
+                                "timestamp" to timestamp,
+                                "status" to "present",
+                                "modifiedBy" to "",
+                                "modifiedAt" to 0L,
+                                "notes" to "",
+                                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                            )
+
+                            attendanceLogsCollection.add(logData)
+                                .addOnSuccessListener { logRef ->
+                                    // Create notification
+                                    createNotification(
+                                        userId = "admin",
+                                        title = "New Attendance",
+                                        message = "$studentName attended ${qrSession.eventName}",
+                                        type = "attendance",
+                                        relatedId = attendanceRef.id
+                                    )
+                                    onSuccess(attendanceRef.id)
+                                }
+                                .addOnFailureListener { e ->
+                                    // Log failed but attendance recorded
+                                    onSuccess(attendanceRef.id)
+                                }
+                        }
+                        .addOnFailureListener { e -> onFailure(e) }
+                } else {
+                    onFailure(Exception("Attendance already recorded for this session"))
+                }
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Listen to all attendance logs for admin management
+     */
+    fun listenToAttendanceLogs(onUpdate: (List<AttendanceLog>) -> Unit): ListenerRegistration {
+        val listener = attendanceLogsCollection
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val logs = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AttendanceLog::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(logs)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    /**
+     * Listen to attendance logs by date
+     */
+    fun listenToAttendanceLogsByDate(date: String, onUpdate: (List<AttendanceLog>) -> Unit): ListenerRegistration {
+        val listener = attendanceLogsCollection
+            .whereEqualTo("scanDate", date)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val logs = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AttendanceLog::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(logs)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    /**
+     * Listen to attendance logs by event
+     */
+    fun listenToAttendanceLogsByEvent(eventId: String, onUpdate: (List<AttendanceLog>) -> Unit): ListenerRegistration {
+        val listener = attendanceLogsCollection
+            .whereEqualTo("eventId", eventId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val logs = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AttendanceLog::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                onUpdate(logs)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    /**
+     * Update attendance log status (edit)
+     */
+    fun updateAttendanceLog(
+        logId: String,
+        status: String,
+        notes: String,
+        modifiedBy: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val updates = hashMapOf<String, Any>(
+            "status" to status,
+            "notes" to notes,
+            "modifiedBy" to modifiedBy,
+            "modifiedAt" to System.currentTimeMillis()
+        )
+
+        attendanceLogsCollection.document(logId)
+            .update(updates)
+            .addOnSuccessListener {
+                // Also update the main attendance record
+                attendanceLogsCollection.document(logId).get()
+                    .addOnSuccessListener { doc ->
+                        val attendanceId = doc.getString("attendanceId") ?: ""
+                        if (attendanceId.isNotEmpty()) {
+                            attendanceCollection.document(attendanceId)
+                                .update(mapOf("status" to status, "notes" to notes))
+                        }
+                    }
+                onSuccess()
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Delete attendance log (remove student from attendance)
+     */
+    fun deleteAttendanceLog(
+        logId: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        // First get the attendance ID to delete from main collection too
+        attendanceLogsCollection.document(logId).get()
+            .addOnSuccessListener { doc ->
+                val attendanceId = doc.getString("attendanceId") ?: ""
+
+                // Delete from logs collection
+                attendanceLogsCollection.document(logId).delete()
+                    .addOnSuccessListener {
+                        // Delete from main attendance collection
+                        if (attendanceId.isNotEmpty()) {
+                            attendanceCollection.document(attendanceId).delete()
+                        }
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e -> onFailure(e) }
             }
             .addOnFailureListener { e -> onFailure(e) }
     }

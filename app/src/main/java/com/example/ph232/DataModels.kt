@@ -165,3 +165,43 @@ data class User(
     @ServerTimestamp
     val createdAt: Date? = null
 )
+
+// Active QR Session model - ensures only one QR code is valid at a time
+data class QrSession(
+    @DocumentId
+    val id: String = "",
+    val qrCode: String = "",
+    val eventId: String = "",
+    val eventName: String = "",
+    val createdBy: String = "",     // Admin who generated this QR
+    val createdByName: String = "", // Admin name for display
+    val isActive: Boolean = true,
+    val expiresAt: Long = 0,        // Timestamp when QR expires
+    val date: String = "",
+    val time: String = "",
+    @ServerTimestamp
+    val createdAt: Date? = null
+)
+
+// Attendance Log Entry - detailed record with scan metadata
+data class AttendanceLog(
+    @DocumentId
+    val id: String = "",
+    val attendanceId: String = "",  // Reference to attendance record
+    val studentId: String = "",
+    val studentName: String = "",
+    val eventId: String = "",
+    val eventName: String = "",
+    val qrSessionId: String = "",   // Reference to the QR session used
+    val qrCode: String = "",
+    val scanDate: String = "",
+    val scanTime: String = "",
+    val timestamp: Long = 0,
+    val status: String = "present", // present, late, absent, removed
+    val modifiedBy: String = "",    // Admin who last modified
+    val modifiedAt: Long = 0,
+    val notes: String = "",
+    @ServerTimestamp
+    val createdAt: Date? = null
+)
+
