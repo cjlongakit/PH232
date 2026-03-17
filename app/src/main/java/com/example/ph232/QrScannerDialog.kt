@@ -214,8 +214,8 @@ class QrScannerDialog : DialogFragment() {
                         }
                     )
                 } else {
-                    // No active session for this QR code - check if it's expired or invalid
-                    onAttendanceRecorded?.invoke(false, "This QR code is invalid or has expired. Please ask admin for a new code.")
+                    // No active QR session found - fall back to legacy event-based lookup
+                    recordAttendanceLegacy(scannedQrCode)
                 }
             },
             onFailure = { e ->

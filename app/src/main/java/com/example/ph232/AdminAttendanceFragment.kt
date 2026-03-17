@@ -151,7 +151,30 @@ class AdminAttendanceFragment : Fragment() {
 
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate.time)
 
-        attendanceListener = repository.listenToAttendanceLogsByDate(dateStr) { logs ->
+        // Listen to ALL attendance (no Firestore query filters to avoid index issues)
+        // Filter by selected date in code
+        attendanceListener = repository.listenToAllAttendance { allRecords ->
+            val records = allRecords.filter { it.date == dateStr }
+            // Convert Attendance objects to AttendanceLog for the adapter
+            val logs = records.map { att ->
+                AttendanceLog(
+                    id = att.id,
+                    attendanceId = att.id,
+                    studentId = att.studentId,
+                    studentName = att.studentName,
+                    eventId = att.eventId,
+                    eventName = att.eventName,
+                    qrSessionId = "",
+                    qrCode = att.eventQR,
+                    scanDate = att.date,
+                    scanTime = att.time.ifEmpty { att.scanTime },
+                    timestamp = att.timestamp,
+                    status = att.status,
+                    modifiedBy = "",
+                    modifiedAt = 0,
+                    notes = att.notes
+                )
+            }
             updateUI(logs)
         }
     }
@@ -249,8 +272,8 @@ class AdminAttendanceFragment : Fragment() {
                 }
                 val newNotes = etNotes.text.toString()
 
-                repository.updateAttendanceLog(
-                    logId = log.id,
+                repository.updateAttendanceRecord(
+                    attendanceId = log.id,
                     status = newStatus,
                     notes = newNotes,
                     modifiedBy = adminUsername,
@@ -271,8 +294,8 @@ class AdminAttendanceFragment : Fragment() {
             .setTitle("Delete Attendance")
             .setMessage("Are you sure you want to remove ${log.studentName}'s attendance record? This cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
-                repository.deleteAttendanceLog(
-                    logId = log.id,
+                repository.deleteAttendance(
+                    attendanceId = log.id,
                     onSuccess = {
                         Toast.makeText(requireContext(), "Attendance record deleted", Toast.LENGTH_SHORT).show()
                     },

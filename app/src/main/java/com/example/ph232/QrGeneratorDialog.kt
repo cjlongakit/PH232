@@ -127,6 +127,9 @@ class QrGeneratorDialog : DialogFragment() {
                     } catch (e: Exception) {
                         Toast.makeText(requireContext(), "Error displaying QR code", Toast.LENGTH_SHORT).show()
                     }
+
+                    // Ensure an active QR session exists for this code
+                    ensureActiveQrSession(existingQrCode)
                 } else {
                     // No existing QR code, generate new one
                     generateNewQrCode()
@@ -136,6 +139,47 @@ class QrGeneratorDialog : DialogFragment() {
                 // Error loading, generate new one
                 generateNewQrCode()
             }
+    }
+
+    private fun ensureActiveQrSession(qrCode: String) {
+        // Check if there's already an active session for this QR code
+        repository.validateQrCode(
+            scannedQrCode = qrCode,
+            onSuccess = { existingSession ->
+                if (existingSession == null) {
+                    // No active session - create one
+                    repository.createQrSession(
+                        qrCode = qrCode,
+                        eventId = eventId,
+                        eventName = eventName,
+                        createdBy = adminId,
+                        createdByName = adminName,
+                        expiresInMinutes = 120,
+                        onSuccess = { sessionId ->
+                            currentSessionId = sessionId
+                            tvQrCodeValue.text = "Code: $currentQrCode (Active)"
+                        },
+                        onFailure = { /* silent */ }
+                    )
+                } else {
+                    currentSessionId = existingSession.id
+                    tvQrCodeValue.text = "Code: $currentQrCode (Active)"
+                }
+            },
+            onFailure = {
+                // On failure, try creating a session anyway
+                repository.createQrSession(
+                    qrCode = qrCode,
+                    eventId = eventId,
+                    eventName = eventName,
+                    createdBy = adminId,
+                    createdByName = adminName,
+                    expiresInMinutes = 120,
+                    onSuccess = { sessionId -> currentSessionId = sessionId },
+                    onFailure = { /* silent */ }
+                )
+            }
+        )
     }
 
     override fun onStart() {

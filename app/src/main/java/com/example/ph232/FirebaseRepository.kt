@@ -429,6 +429,23 @@ class FirebaseRepository private constructor() {
         return listener
     }
 
+    /**
+     * Listen to ALL attendance records with NO Firestore query filters.
+     * Filtering is done in-memory by the caller. This avoids any composite index issues.
+     */
+    fun listenToAllAttendance(onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
+        val listener = attendanceCollection
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val attendanceList = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Attendance::class.java)?.copy(id = doc.id)
+                }?.sortedByDescending { it.timestamp } ?: emptyList()
+                onUpdate(attendanceList)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
     fun listenToAttendanceByStudent(studentId: String, onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
         val listener = attendanceCollection
             .whereEqualTo("studentId", studentId)
@@ -493,6 +510,102 @@ class FirebaseRepository private constructor() {
                 }
 
                 onSuccess(present, late, absent)
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Listen to attendance records by date (from the main attendance collection)
+     */
+    fun listenToAttendanceByDate(date: String, onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
+        val listener = attendanceCollection
+            .whereEqualTo("date", date)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Attendance::class.java)?.copy(id = doc.id)
+                }?.sortedByDescending { it.timestamp } ?: emptyList()
+                onUpdate(list)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    /**
+     * Listen to attendance records by QR code (eventQR field)
+     */
+    fun listenToAttendanceByQrCode(qrCode: String, onUpdate: (List<Attendance>) -> Unit): ListenerRegistration {
+        val listener = attendanceCollection
+            .whereEqualTo("eventQR", qrCode)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Attendance::class.java)?.copy(id = doc.id)
+                }?.sortedByDescending { it.timestamp } ?: emptyList()
+                onUpdate(list)
+            }
+        activeListeners.add(listener)
+        return listener
+    }
+
+    /**
+     * Delete an attendance record directly from the attendance collection
+     * Also removes any matching attendance_logs entry
+     */
+    fun deleteAttendance(attendanceId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        attendanceCollection.document(attendanceId).delete()
+            .addOnSuccessListener {
+                // Also try to delete matching log entry
+                attendanceLogsCollection
+                    .whereEqualTo("attendanceId", attendanceId)
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        for (doc in snapshot.documents) {
+                            doc.reference.delete()
+                        }
+                    }
+                onSuccess()
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    /**
+     * Update an attendance record directly in the attendance collection
+     * Also updates any matching attendance_logs entry
+     */
+    fun updateAttendanceRecord(
+        attendanceId: String,
+        status: String,
+        notes: String,
+        modifiedBy: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val updates = hashMapOf<String, Any>(
+            "status" to status,
+            "notes" to notes
+        )
+
+        attendanceCollection.document(attendanceId)
+            .update(updates)
+            .addOnSuccessListener {
+                // Also update matching log entry
+                attendanceLogsCollection
+                    .whereEqualTo("attendanceId", attendanceId)
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        for (doc in snapshot.documents) {
+                            doc.reference.update(
+                                mapOf(
+                                    "status" to status,
+                                    "notes" to notes,
+                                    "modifiedBy" to modifiedBy,
+                                    "modifiedAt" to System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                onSuccess()
             }
             .addOnFailureListener { e -> onFailure(e) }
     }

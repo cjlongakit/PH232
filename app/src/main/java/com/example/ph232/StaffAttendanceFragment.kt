@@ -1,5 +1,6 @@
 package com.example.ph232
 
+import android.app.AlertDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.graphics.Color
@@ -9,10 +10,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
@@ -48,7 +51,9 @@ class StaffAttendanceFragment : Fragment() {
         rvAttendanceList = view.findViewById(R.id.rvAttendanceList)
 
         rvAttendanceList.layoutManager = LinearLayoutManager(requireContext())
-        adapter = AttendanceAdapter(emptyList())
+        adapter = AttendanceAdapter(emptyList()) { attendance ->
+            showDeleteConfirmation(attendance)
+        }
         rvAttendanceList.adapter = adapter
 
         val prefs = requireActivity().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
@@ -72,6 +77,9 @@ class StaffAttendanceFragment : Fragment() {
             prefs.edit().putString("qr_date", todayStr).putString("qr_time", timeStr24Hour).apply()
 
             generateQRCodeImage(todayStr, timeStr24Hour)
+
+            // Refresh attendance listener to pick up new QR code scans
+            setupAttendanceListener()
         }
 
         TimePickerDialog(requireContext(), timeSetListener, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), false).show()
@@ -112,16 +120,123 @@ class StaffAttendanceFragment : Fragment() {
     }
 
     private fun setupAttendanceListener() {
-        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        attendanceListener?.remove()
+        attendanceListener = null
 
-        attendanceListener = repository.listenToStaffAttendance(staffUsername, todayStr) { attendanceList ->
-            tvAttendanceCount.text = "Total: ${attendanceList.size}"
-            adapter.updateData(attendanceList)
-        }
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val db = FirebaseFirestore.getInstance()
+
+        // Direct Firestore read - no filters at all
+        db.collection("attendance")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!isAdded) return@addOnSuccessListener
+
+                val docCount = snapshot.documents.size
+
+                val allRecords = mutableListOf<Attendance>()
+                for (doc in snapshot.documents) {
+                    val data = doc.data ?: continue
+                    val att = Attendance(
+                        id = doc.id,
+                        studentId = data["studentId"] as? String ?: "",
+                        studentName = data["studentName"] as? String ?: "",
+                        eventId = data["eventId"] as? String ?: "",
+                        eventName = data["eventName"] as? String ?: "",
+                        eventQR = data["eventQR"] as? String ?: "",
+                        date = data["date"] as? String ?: "",
+                        time = data["time"] as? String ?: "",
+                        scanTime = data["scanTime"] as? String ?: "",
+                        timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L,
+                        status = data["status"] as? String ?: "present",
+                        notes = data["notes"] as? String ?: ""
+                    )
+                    allRecords.add(att)
+                }
+
+                // Show ALL records (no date filter) so we can confirm data is loading
+                val sortedRecords = allRecords.sortedByDescending { it.timestamp }
+
+                tvAttendanceCount.text = "Total: ${sortedRecords.size}"
+                adapter.updateData(sortedRecords)
+
+                // Debug toast
+                Toast.makeText(
+                    requireContext(),
+                    "Docs: $docCount | Parsed: ${allRecords.size} | Today($todayStr): ${allRecords.count { it.date == todayStr }}",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                // Set up real-time listener for future updates
+                setupRealtimeListener(todayStr)
+            }
+            .addOnFailureListener { e ->
+                if (!isAdded) return@addOnFailureListener
+                Toast.makeText(requireContext(), "Read error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun setupRealtimeListener(todayStr: String) {
+        attendanceListener?.remove()
+        attendanceListener = null
+
+        val db = FirebaseFirestore.getInstance()
+        attendanceListener = db.collection("attendance")
+            .addSnapshotListener { snapshot, error ->
+                if (!isAdded) return@addSnapshotListener
+                if (error != null) return@addSnapshotListener
+                if (snapshot == null) return@addSnapshotListener
+
+                val allRecords = mutableListOf<Attendance>()
+                for (doc in snapshot.documents) {
+                    val data = doc.data ?: continue
+                    val att = Attendance(
+                        id = doc.id,
+                        studentId = data["studentId"] as? String ?: "",
+                        studentName = data["studentName"] as? String ?: "",
+                        eventId = data["eventId"] as? String ?: "",
+                        eventName = data["eventName"] as? String ?: "",
+                        eventQR = data["eventQR"] as? String ?: "",
+                        date = data["date"] as? String ?: "",
+                        time = data["time"] as? String ?: "",
+                        scanTime = data["scanTime"] as? String ?: "",
+                        timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L,
+                        status = data["status"] as? String ?: "present",
+                        notes = data["notes"] as? String ?: ""
+                    )
+                    allRecords.add(att)
+                }
+
+                val sortedRecords = allRecords.sortedByDescending { it.timestamp }
+
+                tvAttendanceCount.text = "Total: ${sortedRecords.size}"
+                adapter.updateData(sortedRecords)
+            }
+    }
+
+    private fun showDeleteConfirmation(attendance: Attendance) {
+        val studentName = attendance.studentName.ifEmpty { attendance.studentId }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Remove Attendance")
+            .setMessage("Remove ${studentName}'s attendance record?")
+            .setPositiveButton("Remove") { _, _ ->
+                repository.deleteAttendance(
+                    attendanceId = attendance.id,
+                    onSuccess = {
+                        Toast.makeText(requireContext(), "Attendance removed", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { e ->
+                        Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        attendanceListener?.let { repository.removeListener(it) }
+        attendanceListener?.remove()
+        attendanceListener = null
     }
 }
