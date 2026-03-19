@@ -74,64 +74,57 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Mn"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:text="Su"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Mo"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Tu"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Ws"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:text="We"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Th"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Fr"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Sa"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Su"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        android:textColor="@color/gray_text"
                         android:gravity="center" />
 
                 </LinearLayout>
@@ -146,16 +139,25 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Upcoming Section -->
+        <!-- Events this month Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="UPCOMING"
-            android:textSize="20sp"
+            android:text="Events this month:"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/black"
-            android:layout_marginBottom="16dp"
-            android:layout_gravity="center_horizontal" />
+            android:layout_marginBottom="12dp" />
+
+        <!-- Empty state -->
+        <TextView
+            android:id="@+id/tvNoEvents"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No events this month"
+            android:textSize="14sp"
+            android:textColor="@color/gray_text"
+            android:visibility="gone" />
 
         <!-- Upcoming Events List -->
         <androidx.recyclerview.widget.RecyclerView

@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
@@ -104,6 +103,7 @@ class StaffDashboardActivity : AppCompatActivity() {
             .replace(R.id.staffFragmentContainer, fragment)
             .commit()
     }
+
 
     private fun showLogoutWarning() {
         AlertDialog.Builder(this)

@@ -22,6 +22,7 @@ class EventsFragment : Fragment() {
     private lateinit var btnNextMonth: ImageButton
     private lateinit var rvCalendar: RecyclerView
     private lateinit var rvUpcomingEvents: RecyclerView
+    private lateinit var tvNoEvents: TextView
     private lateinit var repository: FirebaseRepository
 
     private var currentCalendar = Calendar.getInstance()
@@ -48,6 +49,7 @@ class EventsFragment : Fragment() {
         btnNextMonth = view.findViewById(R.id.btnNextMonth)
         rvCalendar = view.findViewById(R.id.rvCalendar)
         rvUpcomingEvents = view.findViewById(R.id.rvUpcomingEvents)
+        tvNoEvents = view.findViewById(R.id.tvNoEvents)
 
         // Setup calendar
         setupCalendar()
@@ -90,9 +92,51 @@ class EventsFragment : Fragment() {
             // Update upcoming events list
             rvUpcomingEvents.adapter = EventsAdapter(events)
 
+            // Show/hide empty state
+            updateEmptyState()
+
             // Update calendar with event days
             updateEventDaysForMonth()
         }
+    }
+
+    private fun updateEmptyState() {
+        val monthEvents = events.filter { event ->
+            val day = parseEventDayForMonth(event.date)
+            day > 0
+        }
+        if (monthEvents.isEmpty()) {
+            tvNoEvents.visibility = View.VISIBLE
+            rvUpcomingEvents.visibility = View.GONE
+        } else {
+            tvNoEvents.visibility = View.GONE
+            rvUpcomingEvents.visibility = View.VISIBLE
+        }
+    }
+
+    private fun parseEventDayForMonth(dateStr: String): Int {
+        if (dateStr.isEmpty()) return 0
+        try {
+            val formats = listOf(
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+            )
+            for (format in formats) {
+                try {
+                    val date = format.parse(dateStr)
+                    if (date != null) {
+                        val eventCalendar = Calendar.getInstance()
+                        eventCalendar.time = date
+                        if (eventCalendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+                            eventCalendar.get(Calendar.MONTH) == currentCalendar.get(Calendar.MONTH)) {
+                            return eventCalendar.get(Calendar.DAY_OF_MONTH)
+                        }
+                    }
+                } catch (_: Exception) { }
+            }
+        } catch (_: Exception) { }
+        return 0
     }
 
     private fun parseEventDate(dateStr: String) {
@@ -101,6 +145,7 @@ class EventsFragment : Fragment() {
         try {
             // Try common date formats
             val formats = listOf(
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
                 SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
                 SimpleDateFormat("MM/dd/yyyy", Locale.getDefault()),
                 SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
@@ -136,6 +181,7 @@ class EventsFragment : Fragment() {
             parseEventDate(event.date)
         }
         setupCalendar()
+        updateEmptyState()
     }
 
     private fun updateMonthYearText() {
@@ -157,8 +203,8 @@ class EventsFragment : Fragment() {
         calendar.set(Calendar.DAY_OF_MONTH, 1)
 
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        // Adjust for Monday start (1 = Monday, 7 = Sunday)
-        val offset = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
+        // Sunday = 1, so offset = firstDayOfWeek - 1
+        val offset = firstDayOfWeek - 1
 
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
@@ -198,38 +244,39 @@ class CalendarAdapter(
 ) : RecyclerView.Adapter<CalendarAdapter.DayViewHolder>() {
 
     class DayViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvDay: TextView = view as TextView
+        val tvDay: TextView = view.findViewById(R.id.tvDay)
+        val eventIndicator: View = view.findViewById(R.id.eventIndicator)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayViewHolder {
-        val textView = TextView(parent.context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                120
-            )
-            gravity = android.view.Gravity.CENTER
-            textSize = 14f
-        }
-        return DayViewHolder(textView)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_calendar_day, parent, false)
+        return DayViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: DayViewHolder, position: Int) {
         val calendarDay = days[position]
         holder.tvDay.text = calendarDay.day.toString()
 
+        // Reset state
+        holder.tvDay.background = null
+        holder.eventIndicator.visibility = View.GONE
+
         if (calendarDay.isCurrentMonth) {
             holder.tvDay.setTextColor(holder.itemView.context.getColor(R.color.black))
 
-            // Check if this day has an event
+            // Highlight today
+            val todayCal = Calendar.getInstance()
+            if (calendarDay.day == todayCal.get(Calendar.DAY_OF_MONTH)) {
+                holder.tvDay.setBackgroundResource(R.drawable.circle_today)
+            }
+
+            // Show red dot indicator for events (user side)
             if (eventDays.contains(calendarDay.day)) {
-                holder.tvDay.setBackgroundResource(R.drawable.circle_event_day)
-                holder.tvDay.setTextColor(holder.itemView.context.getColor(R.color.white))
-            } else {
-                holder.tvDay.background = null
+                holder.eventIndicator.visibility = View.VISIBLE
             }
         } else {
             holder.tvDay.setTextColor(holder.itemView.context.getColor(R.color.gray_text))
-            holder.tvDay.background = null
         }
     }
 
@@ -239,26 +286,20 @@ class CalendarAdapter(
 class EventsAdapter(private val events: List<Event>) : RecyclerView.Adapter<EventsAdapter.EventViewHolder>() {
 
     class EventViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvEventDay: TextView = view.findViewById(R.id.tvEventDay)
-        val tvEventTitle: TextView = view.findViewById(R.id.tvEventTitle)
-        val tvEventTime: TextView = view.findViewById(R.id.tvEventTime)
-        val tvEventSubtitle: TextView = view.findViewById(R.id.tvEventSubtitle)
-        val tvEventSubTime: TextView = view.findViewById(R.id.tvEventSubTime)
+        val tvEventText: TextView = view.findViewById(R.id.tvEventText)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EventViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_event, parent, false)
+            .inflate(R.layout.item_event_simple, parent, false)
         return EventViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
         val event = events[position]
-        holder.tvEventDay.text = event.day.toString()
-        holder.tvEventTitle.text = event.title
-        holder.tvEventTime.text = event.time
-        holder.tvEventSubtitle.text = event.subtitle
-        holder.tvEventSubTime.text = event.subTime
+        val eventName = event.name.ifEmpty { event.title.ifEmpty { "Untitled Event" } }
+        val day = event.day
+        holder.tvEventText.text = "$day - $eventName"
     }
 
     override fun getItemCount() = events.size

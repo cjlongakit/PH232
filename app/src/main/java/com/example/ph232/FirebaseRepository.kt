@@ -304,19 +304,53 @@ class FirebaseRepository private constructor() {
     }
 
     fun listenToUpcomingEvents(onUpdate: (List<Event>) -> Unit): ListenerRegistration {
-        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val currentDate = Calendar.getInstance()
+        currentDate.set(Calendar.HOUR_OF_DAY, 0)
+        currentDate.set(Calendar.MINUTE, 0)
+        currentDate.set(Calendar.SECOND, 0)
+        currentDate.set(Calendar.MILLISECOND, 0)
+
         val listener = eventsCollection
-            .whereGreaterThanOrEqualTo("date", currentDate)
-            .orderBy("date", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) return@addSnapshotListener
-                val events = snapshot?.documents?.mapNotNull { doc ->
+                val allEvents = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(Event::class.java)?.copy(id = doc.id)
                 } ?: emptyList()
-                onUpdate(events)
+
+                // Filter upcoming events manually to handle multiple date formats
+                val upcomingEvents = allEvents.filter { event ->
+                    val eventDate = parseEventDate(event.date)
+                    eventDate != null && !eventDate.before(currentDate.time)
+                }.sortedBy { event ->
+                    parseEventDate(event.date)?.time ?: Long.MAX_VALUE
+                }
+
+                onUpdate(upcomingEvents)
             }
         activeListeners.add(listener)
         return listener
+    }
+
+    private fun parseEventDate(dateStr: String): Date? {
+        if (dateStr.isEmpty()) return null
+        val formats = listOf(
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+            SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        )
+        for (format in formats) {
+            try {
+                return format.parse(dateStr)
+            } catch (_: Exception) { }
+        }
+        return null
+    }
+
+    fun deleteEvent(eventId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        eventsCollection.document(eventId)
+            .delete()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onFailure(e) }
     }
 
     // ==================== ATTENDANCE ====================
