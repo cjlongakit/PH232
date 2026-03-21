@@ -7,13 +7,15 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
+import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.material.card.MaterialCardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -27,7 +29,7 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var tvHeaderTitle: TextView
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var fabQrScanner: FloatingActionButton
-    private lateinit var profileCard: CardView
+    private lateinit var profileCard: MaterialCardView
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -40,6 +42,10 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val darkPrefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkPrefs.getBoolean("DARK_MODE", false)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_dashboard)
@@ -91,8 +97,16 @@ class DashboardActivity : AppCompatActivity() {
             }
         }
 
-        // Set default selection
-        bottomNavigation.selectedItemId = R.id.nav_dashboard
+        // Set default selection or restore saved tab
+        val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
+        bottomNavigation.selectedItemId = savedTab
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::bottomNavigation.isInitialized) {
+            outState.putInt("SELECTED_TAB", bottomNavigation.selectedItemId)
+        }
     }
 
     private fun showProfileMenu(anchor: View) {
@@ -102,15 +116,15 @@ class DashboardActivity : AppCompatActivity() {
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_profile -> {
-                    Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
+                    ProfileDialog.newInstance().show(supportFragmentManager, "ProfileDialog")
                     true
                 }
                 R.id.menu_settings -> {
-                    Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
+                    SettingsDialog.newInstance().show(supportFragmentManager, "SettingsDialog")
                     true
                 }
                 R.id.menu_terms -> {
-                    Toast.makeText(this, "Terms & Agreements clicked", Toast.LENGTH_SHORT).show()
+                    TermsDialog.newInstance().show(supportFragmentManager, "TermsDialog")
                     true
                 }
                 R.id.menu_logout -> {
@@ -160,5 +174,28 @@ class DashboardActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    fun loadHeaderProfileImage() {
+        val profileImage = findViewById<ImageView>(R.id.profileImage)
+        val bitmap = ProfileDialog.loadProfileBitmap(this)
+        if (bitmap != null) {
+            profileImage.setImageBitmap(bitmap)
+        } else {
+            profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+            // Try downloading from Cloudinary
+            val savedUrl = CloudinaryHelper.getSavedProfileUrl(this)
+            if (!savedUrl.isNullOrEmpty()) {
+                CloudinaryHelper.downloadProfileImage(this, savedUrl,
+                    onSuccess = { bmp -> profileImage.setImageBitmap(bmp) },
+                    onError = { /* use default placeholder */ }
+                )
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadHeaderProfileImage()
     }
 }

@@ -157,21 +157,18 @@ class AdminDashboardFragment : Fragment() {
     }
 
     private fun addEventToContainer(name: String, date: String) {
-        val textView = TextView(requireContext()).apply {
-            text = "$name - $date"
-            textSize = 14f
-            setPadding(0, 8, 0, 8)
-        }
-        eventsContainer.addView(textView)
+        val eventView = LayoutInflater.from(requireContext()).inflate(R.layout.item_dashboard_event, eventsContainer, false)
+        eventView.findViewById<TextView>(R.id.tvEventName).text = name
+        eventView.findViewById<TextView>(R.id.tvEventDate).text = date
+        eventsContainer.addView(eventView)
     }
 
     private fun addRecentAttendanceToContainer(studentName: String, eventName: String, date: String) {
-        val textView = TextView(requireContext()).apply {
-            text = "$studentName attended $eventName on $date"
-            textSize = 14f
-            setPadding(0, 8, 0, 8)
-        }
-        recentlyContainer.addView(textView)
+        val attendanceView = LayoutInflater.from(requireContext()).inflate(R.layout.item_recent_attendance, recentlyContainer, false)
+        attendanceView.findViewById<TextView>(R.id.tvStudentName).text = studentName
+        attendanceView.findViewById<TextView>(R.id.tvAttendanceDetail).text = "Attended $eventName"
+        attendanceView.findViewById<TextView>(R.id.tvTime).text = date
+        recentlyContainer.addView(attendanceView)
     }
 
     override fun onDestroyView() {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="profile_images" path="profile_images/" />
+    <files-path name="profile_files" path="profile_images/" />
+</paths>
+

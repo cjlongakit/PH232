@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E">
+    android:background="@color/gray_light">
 
     <!-- Date Filter -->
     <com.google.android.material.card.MaterialCardView
@@ -11,9 +11,11 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        app:cardBackgroundColor="#252542"
+        app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
+        app:cardElevation="2dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/gray_200"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -27,11 +29,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPrevDate"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="◀"
-                android:textColor="@android:color/white" />
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_arrow_left"
+                app:iconTint="@color/purple_primary" />
 
             <TextView
                 android:id="@+id/tvSelectedDate"
@@ -40,26 +42,25 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="Today"
-                android:textColor="@android:color/white"
+                android:textColor="@color/black"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextDate"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="▶"
-                android:textColor="@android:color/white" />
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_arrow_right"
+                app:iconTint="@color/purple_primary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDate"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Pick Date"
-                android:textColor="#7B68EE"
-                app:strokeColor="#7B68EE" />
+                android:textColor="@color/purple_primary" />
 
         </LinearLayout>
 
@@ -72,9 +73,11 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="8dp"
-        app:cardBackgroundColor="#252542"
+        app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
+        app:cardElevation="2dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/gray_200"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cardDateFilter">
@@ -97,15 +100,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#7B68EE"
-                    android:textSize="28sp"
+                    android:textColor="@color/purple_primary"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Total"
-                    android:textColor="#888888"
+                    android:textColor="@color/gray_text"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -113,7 +116,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="#444444" />
+                android:background="@color/divider_color" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -127,15 +130,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#10B981"
-                    android:textSize="28sp"
+                    android:textColor="@color/green_500"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Present"
-                    android:textColor="#888888"
+                    android:textColor="@color/gray_text"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -143,7 +146,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="#444444" />
+                android:background="@color/divider_color" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -157,15 +160,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#F59E0B"
-                    android:textSize="28sp"
+                    android:textColor="@color/orange_500"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Late"
-                    android:textColor="#888888"
+                    android:textColor="@color/gray_text"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -173,7 +176,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="#444444" />
+                android:background="@color/divider_color" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -187,15 +190,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#EF4444"
-                    android:textSize="28sp"
+                    android:textColor="@color/red_pending"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Removed"
-                    android:textColor="#888888"
+                    android:textColor="@color/gray_text"
                     android:textSize="12sp" />
 
             </LinearLayout>

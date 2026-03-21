@@ -311,7 +311,7 @@
         android:src="@drawable/ic_qr_code"
         android:contentDescription="Generate QR Code"
         app:backgroundTint="@color/purple_primary"
-        app:tint="@color/white"
+        app:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

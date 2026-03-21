@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/gray_light"
     android:fillViewport="true">
 
     <LinearLayout
@@ -12,159 +12,71 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Month Navigation -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
-
-            <TextView
-                android:id="@+id/tvMonthYear"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="August 2025"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
-
-            <ImageButton
-                android:id="@+id/btnPrevMonth"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_arrow_left"
-                android:contentDescription="Previous Month" />
-
-            <ImageButton
-                android:id="@+id/btnNextMonth"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_arrow_right"
-                android:contentDescription="Next Month" />
-
-        </LinearLayout>
-
-        <!-- Calendar Card -->
-        <androidx.cardview.widget.CardView
+        <!-- Month Navigation Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            android:layout_marginBottom="20dp">
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/gray_200"
+            android:layout_marginBottom="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:background="@color/white">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
 
-                <!-- Day Headers -->
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrevMonth"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:icon="@drawable/ic_arrow_left"
+                    app:iconTint="@color/purple_primary"
+                    android:contentDescription="Previous Month" />
+
+                <TextView
+                    android:id="@+id/tvMonthYear"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="10dp">
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="August 2025"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Su"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Mo"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Tu"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="We"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Th"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Fr"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Sa"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_text"
-                        android:gravity="center" />
-
-                </LinearLayout>
-
-                <!-- Calendar Grid -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvCalendar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnNextMonth"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:icon="@drawable/ic_arrow_right"
+                    app:iconTint="@color/purple_primary"
+                    android:contentDescription="Next Month" />
 
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        </androidx.cardview.widget.CardView>
-
-        <!-- Events this month Section -->
+        <!-- Upcoming Title -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Events this month:"
-            android:textSize="16sp"
+            android:text="Event Schedule"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/black"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="16dp" />
 
-        <!-- Empty state -->
-        <TextView
-            android:id="@+id/tvNoEvents"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No events this month"
-            android:textSize="14sp"
-            android:textColor="@color/gray_text"
-            android:visibility="gone" />
-
-        <!-- Upcoming Events List -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvUpcomingEvents"
+        <LinearLayout
+            android:id="@+id/eventsContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
     </LinearLayout>
 
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

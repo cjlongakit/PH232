@@ -72,6 +72,10 @@ dependencies {
     // AndroidX Fragment
     implementation("androidx.fragment:fragment-ktx:1.6.2")
 
+    // UCrop for image cropping
+    implementation("com.github.yalantis:ucrop:2.2.8")
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

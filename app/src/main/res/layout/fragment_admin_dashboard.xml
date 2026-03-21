@@ -1,205 +1,284 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="20dp"
-    android:background="@color/white">
+    android:background="@color/gray_light"
+    android:fillViewport="true">
 
-    <!-- Add Student, Create Event, Add Letter Buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="20dp">
+        android:orientation="vertical"
+        android:padding="20dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddStudent"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Add Student"
-            android:textSize="11sp"
-            android:backgroundTint="@color/purple_500"
-            android:layout_marginEnd="4dp"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCreateEvent"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Create Event"
-            android:textSize="11sp"
-            android:backgroundTint="@color/purple_500"
-            android:layout_marginHorizontal="4dp"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddLetter"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Add Letter"
-            android:textSize="11sp"
-            android:backgroundTint="@color/purple_500"
-            android:layout_marginStart="4dp"/>
-
-    </LinearLayout>
-
-    <!-- Stats Section -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="20dp">
-
-        <!-- Total Letters -->
+        <!-- Action Buttons -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="15dp"
-            android:background="@drawable/tab_background"
-            android:backgroundTint="@color/purple_200"
-            android:layout_marginEnd="5dp">
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Total Letters"
-                android:textSize="12sp"
-                android:textColor="@color/gray_dark" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddStudent"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="Add Student"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp"
+                android:layout_marginEnd="8dp" />
 
-            <TextView
-                android:id="@+id/tvTotalLetters"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="8"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/purple_500"
-                android:layout_marginTop="5dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCreateEvent"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="Create Event"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp"
+                android:layout_marginStart="8dp" />
 
         </LinearLayout>
 
-        <!-- Turned In -->
-        <LinearLayout
-            android:layout_width="0dp"
+        <!-- Stats Container -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="15dp"
-            android:background="@drawable/tab_background"
-            android:backgroundTint="@color/green_200"
-            android:layout_marginHorizontal="2dp">
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/purple_soft">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Turned In"
-                android:textSize="12sp"
-                android:textColor="@color/gray_dark" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tvTurnedIn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="4"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/green_500"
-                android:layout_marginTop="5dp" />
+                <!-- First Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
 
-        </LinearLayout>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
 
-        <!-- On Hand -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="15dp"
-            android:background="@drawable/tab_background"
-            android:backgroundTint="@color/orange_200"
-            android:layout_marginStart="5dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="On Hand"
-                android:textSize="12sp"
-                android:textColor="@color/gray_dark" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Total Letters"
+                                android:textSize="12sp"
+                                android:textColor="@color/gray_text" />
 
-            <TextView
-                android:id="@+id/tvOnHand"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="8"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="@color/orange_500"
-                android:layout_marginTop="5dp" />
+                            <TextView
+                                android:id="@+id/tvTotalLetters"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/purple_primary" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
 
-        </LinearLayout>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
 
-    </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="16dp">
 
-    <!-- Upcoming Events -->
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Turned In"
+                                android:textSize="12sp"
+                                android:textColor="@color/gray_text" />
 
+                            <TextView
+                                android:id="@+id/tvTurnedIn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="4"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/green_500" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- Second Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="On Hand"
+                                android:textSize="12sp"
+                                android:textColor="@color/gray_text" />
+
+                            <TextView
+                                android:id="@+id/tvOnHand"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/orange_500" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Upcoming Events"
+                                android:textSize="12sp"
+                                android:textColor="@color/gray_text" />
+
+                            <TextView
+                                android:id="@+id/tvUpcomingEvents"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/purple_primary" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Events of the Months -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Events of the Month"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/black"
-            android:layout_alignParentStart="true" />
+            android:layout_marginBottom="12dp" />
 
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/gray_200">
+
+            <LinearLayout
+                android:id="@+id/eventsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="8dp" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Recently Section -->
         <TextView
-            android:id="@+id/tvUpcomingEvents"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0"
-            android:textSize="14sp"
-            android:textColor="@color/purple_500"
-            android:layout_alignParentEnd="true"
-            android:textStyle="bold" />
-    </RelativeLayout>
+            android:text="Recent Activity"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="12dp" />
 
-    <LinearLayout
-        android:id="@+id/eventsContainer"
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:orientation="vertical"
-        android:background="@drawable/tab_background"
-        android:backgroundTint="@color/gray_light" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/gray_200">
 
-    <!-- Recently -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Recently"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="@color/black"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="10dp" />
+            <LinearLayout
+                android:id="@+id/recentlyContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="100dp"
+                android:orientation="vertical"
+                android:padding="8dp" />
 
-    <LinearLayout
-        android:id="@+id/recentlyContainer"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:background="@drawable/tab_background"
-        android:backgroundTint="@color/gray_light" />
+        </com.google.android.material.card.MaterialCardView>
 
-</LinearLayout>
+        <!-- Add Letter Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddLetter"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Add Letter"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

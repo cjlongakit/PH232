@@ -90,17 +90,13 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Submit Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSubmitRegister"
+            style="@style/CustomButtonStyle"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="Complete Registration"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:cornerRadius="16dp"
-            android:backgroundTint="@color/accent_gold"
-            android:textColor="@color/purple_dark"
+            android:text="Create Account"
             android:layout_marginBottom="40dp"/>
     </LinearLayout>
 </ScrollView>
-

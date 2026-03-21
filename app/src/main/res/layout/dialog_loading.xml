@@ -11,7 +11,7 @@
         android:orientation="vertical"
         android:padding="32dp"
         android:gravity="center"
-        android:background="@color/white">
+        android:background="?attr/colorSurface">
         <ImageView
             android:id="@+id/ivMascotLoader"
             android:layout_width="80dp"

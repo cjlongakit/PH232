@@ -2,70 +2,98 @@ package com.example.ph232
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
+import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.material.card.MaterialCardView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class StaffDashboardActivity : AppCompatActivity() {
 
+    private lateinit var sharedPreferences: SharedPreferences
     private lateinit var tvHeaderTitle: TextView
     private lateinit var bottomNavigation: BottomNavigationView
-    private lateinit var profileCard: CardView
+    private lateinit var profileCard: MaterialCardView
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val darkPrefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkPrefs.getBoolean("DARK_MODE", false)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_staff_dashboard)
 
-        tvHeaderTitle = findViewById(R.id.tvStaffHeaderTitle)
-        bottomNavigation = findViewById(R.id.staffBottomNavigation)
-        profileCard = findViewById(R.id.staffProfileCard)
-
-        // Set the default tab when the app opens
-        if (savedInstanceState == null) {
-            bottomNavigation.selectedItemId = R.id.nav_staff_attendance
-            loadFragment(StaffAttendanceFragment())
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.fragmentContainer)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, 0, systemBars.right, 0)
+            insets
         }
 
-        // Intercept back button to prevent accidental exit
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                showLogoutWarning()
-            }
-        })
+        // Initialize SharedPreferences
+        sharedPreferences = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
 
-        // Logout when profile picture is clicked
+        // Initialize views
+        tvHeaderTitle = findViewById(R.id.tvHeaderTitle)
+        bottomNavigation = findViewById(R.id.bottomNavigation)
+        profileCard = findViewById(R.id.profileCard)
+
+        // Setup Profile dropdown menu
         profileCard.setOnClickListener { view ->
             showProfileMenu(view)
         }
 
-        // Setup bottom navigation routing
+        // Setup bottom navigation
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_staff_attendance -> {
-                    tvHeaderTitle.text = "Today's Attendance"
-                    loadFragment(StaffAttendanceFragment())
+                R.id.nav_dashboard -> {
+                    tvHeaderTitle.text = "Dashboard"
+                    loadFragment(AdminDashboardFragment())
                     true
                 }
-                R.id.nav_staff_letters -> {
-                    tvHeaderTitle.text = "Letter Management"
+                R.id.nav_attendance -> {
+                    tvHeaderTitle.text = "Attendance Management"
+                    loadFragment(StaffAttendanceFragment()) // Staff version with QR bubble
+                    true
+                }
+                R.id.nav_letters -> {
+                    tvHeaderTitle.text = "Letters"
                     loadFragment(StaffLettersFragment())
                     true
                 }
-                R.id.nav_staff_events -> {
-                    tvHeaderTitle.text = "Event Manager"
-                    loadFragment(AdminEventsFragment()) // Reuse admin events fragment
+                R.id.nav_events -> {
+                    tvHeaderTitle.text = "Events"
+                    loadFragment(AdminEventsFragment())
+                    true
+                }
+                R.id.nav_students -> {
+                    tvHeaderTitle.text = "All Students"
+                    loadFragment(AdminStudentsFragment())
                     true
                 }
                 else -> false
             }
+        }
+
+        // Set default selection or restore saved tab
+        val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
+        bottomNavigation.selectedItemId = savedTab
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::bottomNavigation.isInitialized) {
+            outState.putInt("SELECTED_TAB", bottomNavigation.selectedItemId)
         }
     }
 
@@ -76,19 +104,19 @@ class StaffDashboardActivity : AppCompatActivity() {
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_profile -> {
-                    Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
+                    ProfileDialog.newInstance().show(supportFragmentManager, "ProfileDialog")
                     true
                 }
                 R.id.menu_settings -> {
-                    Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
+                    SettingsDialog.newInstance().show(supportFragmentManager, "SettingsDialog")
                     true
                 }
                 R.id.menu_terms -> {
-                    Toast.makeText(this, "Terms & Agreements clicked", Toast.LENGTH_SHORT).show()
+                    TermsDialog.newInstance().show(supportFragmentManager, "TermsDialog")
                     true
                 }
                 R.id.menu_logout -> {
-                    showLogoutWarning()
+                    logout()
                     true
                 }
                 else -> false
@@ -100,27 +128,40 @@ class StaffDashboardActivity : AppCompatActivity() {
 
     private fun loadFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
-            .replace(R.id.staffFragmentContainer, fragment)
+            .replace(R.id.fragmentContainer, fragment)
             .commit()
     }
 
+    fun logout() {
+        val editor = sharedPreferences.edit()
+        editor.clear()
+        editor.apply()
 
-    private fun showLogoutWarning() {
-        AlertDialog.Builder(this)
-            .setTitle("Log Out")
-            .setMessage("Are you sure you want to log out of the Caseworker Portal?")
-            .setPositiveButton("Yes") { _, _ -> logout() }
-            .setNegativeButton("No", null)
-            .show()
-    }
-
-    private fun logout() {
-        val sharedPreferences = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-        sharedPreferences.edit().clear().apply()
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
     }
-}
 
+    fun loadHeaderProfileImage() {
+        val profileImage = findViewById<ImageView>(R.id.profileImage)
+        val bitmap = ProfileDialog.loadProfileBitmap(this)
+        if (bitmap != null) {
+            profileImage.setImageBitmap(bitmap)
+        } else {
+            profileImage.setImageResource(R.drawable.ic_profile_placeholder)
+            val savedUrl = CloudinaryHelper.getSavedProfileUrl(this)
+            if (!savedUrl.isNullOrEmpty()) {
+                CloudinaryHelper.downloadProfileImage(this, savedUrl,
+                    onSuccess = { bmp -> profileImage.setImageBitmap(bmp) },
+                    onError = { /* use default placeholder */ }
+                )
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadHeaderProfileImage()
+    }
+}

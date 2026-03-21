@@ -1,28 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="purple_primary">#8E24AA</color>
-    <color name="purple_dark">#6A1B9A</color>
-    <color name="purple_light">#AB47BC</color>
-    <color name="gray_light">#F5F5F5</color>
-    <color name="gray_text">#757575</color>
-    <color name="gray_button">#BDBDBD</color>
-    <color name="gray_dark">#424242</color>
-    <color name="link_blue">#1976D2</color>
-    <color name="red_pending">#FF5252</color>
-    <color name="purple_500">#8E24AA</color>
-    <color name="purple_200">#E1BEE7</color>
-    <color name="green_500">#4CAF50</color>
-    <color name="green_200">#C8E6C9</color>
-    <color name="orange_500">#FF9800</color>
-    <color name="orange_200">#FFE0B2</color>
+    <color name="black">#111827</color>
+    <color name="white">#FFFFFF</color>
+    <color name="purple_primary">#6D28D9</color>
+    <color name="purple_dark">#4C1D95</color>
+    <color name="purple_light">#8B5CF6</color>
+    <color name="purple_soft">#EDE9FE</color>
+    <color name="gray_light">#F9FAFB</color>
+    <color name="gray_200">#E5E7EB</color>
+    <color name="gray_300">#D1D5DB</color>
+    <color name="gray_400">#9CA3AF</color>
+    <color name="gray_text">#4B5563</color>
+    <color name="gray_button">#F3F4F6</color>
+    <color name="gray_dark">#1F2937</color>
+    <color name="link_blue">#2563EB</color>
+    <color name="red_pending">#EF4444</color>
+    <color name="green_500">#10B981</color>
+    <color name="green_200">#A7F3D0</color>
+    <color name="orange_500">#F59E0B</color>
+    <color name="orange_200">#FEF3C7</color>
 
     <!-- Status colors -->
-    <color name="status_turned_in">#4CAF50</color>
-    <color name="status_on_hand">#FF9800</color>
-    <color name="status_pending">#FF5252</color>
-    <color name="status_active">#4CAF50</color>
-    <color name="status_inactive">#9E9E9E</color>
+    <color name="status_turned_in">#10B981</color>
+    <color name="status_on_hand">#F59E0B</color>
+    <color name="status_pending">#EF4444</color>
+    <color name="status_active">#10B981</color>
+    <color name="status_inactive">#6B7280</color>
     <color name="accent_gold">#F59E0B</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="divider_color">#F3F4F6</color>
 </resources>
