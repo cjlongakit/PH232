@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/gray_light">
+
+    <!-- Top Toolbar Actions -->
+    <LinearLayout
+        android:id="@+id/toolbarActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddStudent"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add Student"
+            android:textAllCaps="false"
+            app:icon="@android:drawable/ic_input_add"
+            app:cornerRadius="12dp"
+            android:layout_marginEnd="12dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvStudentCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 students"
+            android:textColor="@color/gray_text"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- Search Bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardSearch"
+        android:layout_width="0dp"
+        android:layout_height="52dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="26dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/gray_200"
+        app:layout_constraintTop_toBottomOf="@id/toolbarActions"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="@color/gray_400" />
+
+            <EditText
+                android:id="@+id/etSearchStudents"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:hint="Search students..."
+                android:background="@null"
+                android:textSize="16sp"
+                android:textColor="@color/black"
+                android:textColorHint="@color/gray_400"
+                android:singleLine="true"
+                android:imeOptions="actionSearch"
+                android:inputType="text" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Student List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvStudents"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:paddingHorizontal="20dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/cardSearch"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/layoutEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cardSearch">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:alpha="0.5"
+            android:src="@drawable/ic_profile_placeholder" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="No students found"
+            android:textColor="@color/gray_text"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvEmptySubtext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add students using the button above"
+            android:textColor="@color/gray_400"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -40,6 +41,10 @@ class DashboardActivity : AppCompatActivity() {
             Toast.makeText(this, "Camera permission required for QR scanning", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* granted or not, we still start the Firestore listener */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val darkPrefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
@@ -100,6 +105,20 @@ class DashboardActivity : AppCompatActivity() {
         // Set default selection or restore saved tab
         val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
         bottomNavigation.selectedItemId = savedTab
+
+        // Start notification listener
+        val userId = sharedPreferences.getString("USER_PH", "") ?: ""
+        if (userId.isNotEmpty()) {
+            (application as PH232Application).startNotificationListener(userId)
+        }
+
+        // Request notification permission on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -164,6 +183,9 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     fun logout() {
+        // Stop notification listener
+        (application as PH232Application).stopNotificationListener()
+
         // Clear stored credentials
         val editor = sharedPreferences.edit()
         editor.clear()

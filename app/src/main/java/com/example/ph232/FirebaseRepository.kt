@@ -95,6 +95,31 @@ class FirebaseRepository private constructor() {
         return listener
     }
 
+    fun deleteStudent(studentId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        studentsCollection.document(studentId)
+            .delete()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun searchStudents(query: String, onSuccess: (List<Student>) -> Unit, onFailure: (Exception) -> Unit) {
+        studentsCollection
+            .orderBy("name")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val students = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Student::class.java)?.copy(id = doc.id)
+                }.filter {
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.email.contains(query, ignoreCase = true) ||
+                    it.section.contains(query, ignoreCase = true) ||
+                    it.id.contains(query, ignoreCase = true)
+                }
+                onSuccess(students)
+            }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
     // ==================== LETTERS ====================
 
     fun addLetter(letter: Letter, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
@@ -146,7 +171,29 @@ class FirebaseRepository private constructor() {
 
         lettersCollection.document(letterId)
             .update(updates)
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener {
+                // If a letter was turned in, notify admins and staff
+                if (status.lowercase() == "turned_in" || status.lowercase() == "turned in") {
+                    lettersCollection.document(letterId).get()
+                        .addOnSuccessListener { doc ->
+                            val studentName = doc.getString("studentName") ?: "A student"
+                            val letterTitle = doc.getString("title") ?: "a letter"
+                            notifyAllAdmins(
+                                title = "Letter Turned In",
+                                message = "$studentName has turned in: $letterTitle",
+                                type = "letter",
+                                relatedId = letterId
+                            )
+                            notifyAllStaff(
+                                title = "Letter Turned In",
+                                message = "$studentName has turned in: $letterTitle",
+                                type = "letter",
+                                relatedId = letterId
+                            )
+                        }
+                }
+                onSuccess()
+            }
             .addOnFailureListener { e -> onFailure(e) }
     }
 
@@ -262,7 +309,23 @@ class FirebaseRepository private constructor() {
         )
 
         eventsCollection.add(eventData)
-            .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+            .addOnSuccessListener { docRef ->
+                // Notify all students and staff about the new event
+                val eventTitle = event.name.ifEmpty { event.title }
+                notifyAllStudents(
+                    title = "New Event",
+                    message = "A new event has been created: $eventTitle on ${event.date}",
+                    type = "event",
+                    relatedId = docRef.id
+                )
+                notifyAllStaff(
+                    title = "New Event",
+                    message = "A new event has been created: $eventTitle on ${event.date}",
+                    type = "event",
+                    relatedId = docRef.id
+                )
+                onSuccess(docRef.id)
+            }
             .addOnFailureListener { e -> onFailure(e) }
     }
 
@@ -646,7 +709,7 @@ class FirebaseRepository private constructor() {
 
     // ==================== NOTIFICATIONS ====================
 
-    private fun createNotification(userId: String, title: String, message: String, type: String, relatedId: String = "") {
+    fun createNotification(userId: String, title: String, message: String, type: String, relatedId: String = "") {
         val notificationData = hashMapOf(
             "userId" to userId,
             "title" to title,
@@ -658,6 +721,45 @@ class FirebaseRepository private constructor() {
         )
 
         notificationsCollection.add(notificationData)
+    }
+
+    /**
+     * Broadcasts a notification to all users of a specific role.
+     * Looks up all users with the given role and creates a notification for each.
+     */
+    fun broadcastNotification(role: String, title: String, message: String, type: String, relatedId: String = "") {
+        db.collection("users")
+            .whereEqualTo("role", role)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                for (doc in snapshot.documents) {
+                    val userId = doc.id
+                    createNotification(userId, title, message, type, relatedId)
+                }
+            }
+        // Also create a role-wide notification for the broadcast listener
+        createNotification("all_$role", title, message, type, relatedId)
+    }
+
+    /**
+     * Notify all students about something (new event, etc.)
+     */
+    fun notifyAllStudents(title: String, message: String, type: String, relatedId: String = "") {
+        broadcastNotification("user", title, message, type, relatedId)
+    }
+
+    /**
+     * Notify all staff about something
+     */
+    fun notifyAllStaff(title: String, message: String, type: String, relatedId: String = "") {
+        broadcastNotification("staff", title, message, type, relatedId)
+    }
+
+    /**
+     * Notify all admins about something
+     */
+    fun notifyAllAdmins(title: String, message: String, type: String, relatedId: String = "") {
+        broadcastNotification("admin", title, message, type, relatedId)
     }
 
     fun listenToNotifications(userId: String, onUpdate: (List<Notification>) -> Unit): ListenerRegistration {
@@ -942,9 +1044,23 @@ class FirebaseRepository private constructor() {
 
                             attendanceLogsCollection.add(logData)
                                 .addOnSuccessListener { logRef ->
-                                    // Create notification
+                                    // Notify the student that their attendance was recorded
                                     createNotification(
-                                        userId = "admin",
+                                        userId = studentId,
+                                        title = "Attendance Recorded",
+                                        message = "Your attendance for ${qrSession.eventName} has been recorded.",
+                                        type = "attendance",
+                                        relatedId = attendanceRef.id
+                                    )
+                                    // Notify all admins
+                                    notifyAllAdmins(
+                                        title = "New Attendance",
+                                        message = "$studentName attended ${qrSession.eventName}",
+                                        type = "attendance",
+                                        relatedId = attendanceRef.id
+                                    )
+                                    // Notify all staff
+                                    notifyAllStaff(
                                         title = "New Attendance",
                                         message = "$studentName attended ${qrSession.eventName}",
                                         type = "attendance",

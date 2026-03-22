@@ -4,6 +4,8 @@ import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.DialogFragment
@@ -12,6 +14,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.FirebaseFirestore
+import java.io.File
 
 class SettingsDialog : DialogFragment() {
 
@@ -24,21 +27,55 @@ class SettingsDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_settings, null)
 
-        val switchDarkMode = view.findViewById<MaterialSwitch>(R.id.switchDarkMode)
-        val etCurrentPassword = view.findViewById<TextInputEditText>(R.id.etCurrentPassword)
-        val etNewPassword = view.findViewById<TextInputEditText>(R.id.etNewPassword)
-        val etConfirmPassword = view.findViewById<TextInputEditText>(R.id.etConfirmPassword)
-        val btnChangePassword = view.findViewById<MaterialButton>(R.id.btnChangePassword)
-        val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseSettings)
-
         val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
         val userId = prefs.getString("USER_PH", "") ?: ""
+        val userRole = prefs.getString("USER_ROLE", "") ?: ""
 
-        // Load current dark mode state
+        // ==================== ACCOUNT SECTION ====================
+        val tvUserId = view.findViewById<TextView>(R.id.tvUserId)
+        val tvUserRole = view.findViewById<TextView>(R.id.tvUserRole)
+        val etDisplayName = view.findViewById<TextInputEditText>(R.id.etDisplayName)
+        val btnSaveDisplayName = view.findViewById<MaterialButton>(R.id.btnSaveDisplayName)
+
+        tvUserId.text = userId.ifEmpty { "—" }
+        tvUserRole.text = userRole.replaceFirstChar { it.uppercase() }.ifEmpty { "—" }
+
+        // Load display name from Firestore
+        if (userId.isNotEmpty()) {
+            db.collection("users").document(userId).get()
+                .addOnSuccessListener { doc ->
+                    if (!isAdded) return@addOnSuccessListener
+                    val displayName = doc.getString("displayName") ?: doc.getString("name") ?: ""
+                    etDisplayName.setText(displayName)
+                }
+        }
+
+        btnSaveDisplayName.setOnClickListener {
+            val newName = etDisplayName.text.toString().trim()
+            if (newName.isEmpty()) {
+                Toast.makeText(requireContext(), "Display name cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (userId.isNotEmpty()) {
+                db.collection("users").document(userId)
+                    .update("displayName", newName)
+                    .addOnSuccessListener {
+                        if (!isAdded) return@addOnSuccessListener
+                        prefs.edit().putString("DISPLAY_NAME", newName).apply()
+                        Toast.makeText(requireContext(), "Display name updated!", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener {
+                        if (!isAdded) return@addOnFailureListener
+                        Toast.makeText(requireContext(), "Failed to update display name", Toast.LENGTH_SHORT).show()
+                    }
+            }
+        }
+
+        // ==================== APPEARANCE SECTION ====================
+        val switchDarkMode = view.findViewById<MaterialSwitch>(R.id.switchDarkMode)
         val isDarkMode = prefs.getBoolean("DARK_MODE", false)
         switchDarkMode.isChecked = isDarkMode
 
-        // Dark mode toggle
         switchDarkMode.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("DARK_MODE", isChecked).apply()
             dismiss()
@@ -47,7 +84,46 @@ class SettingsDialog : DialogFragment() {
             )
         }
 
-        // Change password
+        // ==================== NOTIFICATIONS SECTION ====================
+        val switchNotifications = view.findViewById<MaterialSwitch>(R.id.switchNotifications)
+        val switchAttendanceAlerts = view.findViewById<MaterialSwitch>(R.id.switchAttendanceAlerts)
+        val switchLetterReminders = view.findViewById<MaterialSwitch>(R.id.switchLetterReminders)
+
+        switchNotifications.isChecked = prefs.getBoolean("NOTIFICATIONS_ENABLED", true)
+        switchAttendanceAlerts.isChecked = prefs.getBoolean("ATTENDANCE_ALERTS", true)
+        switchLetterReminders.isChecked = prefs.getBoolean("LETTER_REMINDERS", true)
+
+        switchNotifications.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("NOTIFICATIONS_ENABLED", isChecked).apply()
+            // When master notifications is off, disable sub-toggles
+            switchAttendanceAlerts.isEnabled = isChecked
+            switchLetterReminders.isEnabled = isChecked
+            if (!isChecked) {
+                switchAttendanceAlerts.isChecked = false
+                switchLetterReminders.isChecked = false
+            }
+            val msg = if (isChecked) "Notifications enabled" else "Notifications disabled"
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        }
+
+        // Sync enabled state on open
+        switchAttendanceAlerts.isEnabled = switchNotifications.isChecked
+        switchLetterReminders.isEnabled = switchNotifications.isChecked
+
+        switchAttendanceAlerts.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("ATTENDANCE_ALERTS", isChecked).apply()
+        }
+
+        switchLetterReminders.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("LETTER_REMINDERS", isChecked).apply()
+        }
+
+        // ==================== SECURITY SECTION ====================
+        val etCurrentPassword = view.findViewById<TextInputEditText>(R.id.etCurrentPassword)
+        val etNewPassword = view.findViewById<TextInputEditText>(R.id.etNewPassword)
+        val etConfirmPassword = view.findViewById<TextInputEditText>(R.id.etConfirmPassword)
+        val btnChangePassword = view.findViewById<MaterialButton>(R.id.btnChangePassword)
+
         btnChangePassword.setOnClickListener {
             val currentPass = etCurrentPassword.text.toString().trim()
             val newPass = etNewPassword.text.toString().trim()
@@ -98,10 +174,85 @@ class SettingsDialog : DialogFragment() {
                 }
         }
 
+        // ==================== DATA & STORAGE SECTION ====================
+        val btnClearCache = view.findViewById<LinearLayout>(R.id.btnClearCache)
+        val tvCacheSize = view.findViewById<TextView>(R.id.tvCacheSize)
+        val btnExportData = view.findViewById<LinearLayout>(R.id.btnExportData)
+
+        // Calculate and display cache size
+        val cacheSize = getCacheSize()
+        tvCacheSize.text = "Cache size: $cacheSize"
+
+        btnClearCache.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Clear Cache")
+                .setMessage("This will clear all cached data. Are you sure?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Clear") { _, _ ->
+                    clearCache()
+                    tvCacheSize.text = "Cache size: 0 KB"
+                    Toast.makeText(requireContext(), "Cache cleared successfully!", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        }
+
+        btnExportData.setOnClickListener {
+            Toast.makeText(requireContext(), "Export feature coming soon!", Toast.LENGTH_SHORT).show()
+        }
+
+        // ==================== ABOUT SECTION ====================
+        val tvAppVersion = view.findViewById<TextView>(R.id.tvAppVersion)
+        val tvBuildNumber = view.findViewById<TextView>(R.id.tvBuildNumber)
+
+        try {
+            val pInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            tvAppVersion.text = pInfo.versionName ?: "1.0.0"
+            tvBuildNumber.text = "Build ${pInfo.longVersionCode}"
+        } catch (e: Exception) {
+            tvAppVersion.text = "1.0.0"
+            tvBuildNumber.text = "Debug"
+        }
+
+        // ==================== CLOSE BUTTON ====================
+        val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseSettings)
         btnClose.setOnClickListener { dismiss() }
 
         val dlg = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
         dlg.window?.setBackgroundDrawableResource(android.R.color.transparent)
         return dlg
+    }
+
+    private fun getCacheSize(): String {
+        val cacheDir = requireContext().cacheDir
+        val size = getDirSize(cacheDir)
+        return when {
+            size < 1024 -> "$size B"
+            size < 1024 * 1024 -> "${size / 1024} KB"
+            else -> "${"%.1f".format(size / (1024.0 * 1024.0))} MB"
+        }
+    }
+
+    private fun getDirSize(dir: File): Long {
+        var size: Long = 0
+        if (dir.isDirectory) {
+            dir.listFiles()?.forEach { file ->
+                size += if (file.isFile) file.length() else getDirSize(file)
+            }
+        }
+        return size
+    }
+
+    private fun clearCache() {
+        val cacheDir = requireContext().cacheDir
+        deleteDir(cacheDir)
+    }
+
+    private fun deleteDir(dir: File): Boolean {
+        if (dir.isDirectory) {
+            dir.listFiles()?.forEach { child ->
+                deleteDir(child)
+            }
+        }
+        return dir.delete()
     }
 }

@@ -1,11 +1,11 @@
 package com.example.ph232
 
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.util.*
@@ -50,31 +50,37 @@ class AttendanceLogAdapter(
         holder.tvScanTime.text = displayTime
 
         // Set status and colors
+        val context = holder.itemView.context
         when (log.status.lowercase()) {
             "present" -> {
                 holder.tvStatus.text = "Present"
-                holder.tvStatus.setTextColor(Color.parseColor("#10B981"))
-                holder.viewStatusIndicator.setBackgroundColor(Color.parseColor("#10B981"))
+                val color = ContextCompat.getColor(context, R.color.green_500)
+                holder.tvStatus.setTextColor(color)
+                holder.viewStatusIndicator.setBackgroundColor(color)
             }
             "late" -> {
                 holder.tvStatus.text = "Late"
-                holder.tvStatus.setTextColor(Color.parseColor("#F59E0B"))
-                holder.viewStatusIndicator.setBackgroundColor(Color.parseColor("#F59E0B"))
+                val color = ContextCompat.getColor(context, R.color.orange_500)
+                holder.tvStatus.setTextColor(color)
+                holder.viewStatusIndicator.setBackgroundColor(color)
             }
             "absent" -> {
                 holder.tvStatus.text = "Absent"
-                holder.tvStatus.setTextColor(Color.parseColor("#EF4444"))
-                holder.viewStatusIndicator.setBackgroundColor(Color.parseColor("#EF4444"))
+                val color = ContextCompat.getColor(context, R.color.red_pending)
+                holder.tvStatus.setTextColor(color)
+                holder.viewStatusIndicator.setBackgroundColor(color)
             }
             "removed" -> {
                 holder.tvStatus.text = "Removed"
-                holder.tvStatus.setTextColor(Color.parseColor("#888888"))
-                holder.viewStatusIndicator.setBackgroundColor(Color.parseColor("#888888"))
+                val color = ContextCompat.getColor(context, R.color.gray_400)
+                holder.tvStatus.setTextColor(color)
+                holder.viewStatusIndicator.setBackgroundColor(color)
             }
             else -> {
                 holder.tvStatus.text = log.status.replaceFirstChar { it.uppercase() }
-                holder.tvStatus.setTextColor(Color.parseColor("#7B68EE"))
-                holder.viewStatusIndicator.setBackgroundColor(Color.parseColor("#7B68EE"))
+                val color = ContextCompat.getColor(context, R.color.purple_primary)
+                holder.tvStatus.setTextColor(color)
+                holder.viewStatusIndicator.setBackgroundColor(color)
             }
         }
 

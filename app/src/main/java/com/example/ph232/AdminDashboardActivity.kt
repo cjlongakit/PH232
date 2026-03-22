@@ -1,8 +1,11 @@
 package com.example.ph232
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -10,9 +13,11 @@ import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.android.material.card.MaterialCardView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -24,6 +29,10 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var tvHeaderTitle: TextView
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var profileCard: MaterialCardView
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* granted or not, we still start the Firestore listener */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val darkPrefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
@@ -88,6 +97,20 @@ class AdminDashboardActivity : AppCompatActivity() {
         // Set default selection or restore saved tab
         val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
         bottomNavigation.selectedItemId = savedTab
+
+        // Start notification listener
+        val userId = sharedPreferences.getString("USER_PH", "") ?: ""
+        if (userId.isNotEmpty()) {
+            (application as PH232Application).startNotificationListener(userId)
+        }
+
+        // Request notification permission on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -133,6 +156,9 @@ class AdminDashboardActivity : AppCompatActivity() {
     }
 
     fun logout() {
+        // Stop notification listener
+        (application as PH232Application).stopNotificationListener()
+
         // Clear stored credentials
         val editor = sharedPreferences.edit()
         editor.clear()
