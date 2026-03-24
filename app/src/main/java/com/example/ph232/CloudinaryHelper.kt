@@ -95,9 +95,9 @@ object CloudinaryHelper {
                         ?.replace("\\/", "/") ?: ""
 
                     if (secureUrl.isNotEmpty()) {
-                        // Save URL locally
+                        // Save URL locally, scoped per user
                         val prefs = context.getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-                        prefs.edit().putString("PROFILE_IMAGE_URL", secureUrl).apply()
+                        prefs.edit().putString("PROFILE_IMAGE_URL_$userId", secureUrl).apply()
 
                         mainHandler.post { onSuccess(secureUrl) }
                     } else {
@@ -171,10 +171,11 @@ object CloudinaryHelper {
     }
 
     /**
-     * Get the saved Cloudinary profile image URL.
+     * Get the saved Cloudinary profile image URL for the current user.
      */
     fun getSavedProfileUrl(context: Context): String? {
         val prefs = context.getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-        return prefs.getString("PROFILE_IMAGE_URL", null)
+        val userId = prefs.getString("USER_PH", "unknown") ?: "unknown"
+        return prefs.getString("PROFILE_IMAGE_URL_$userId", null)
     }
 }

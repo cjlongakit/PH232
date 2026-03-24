@@ -82,10 +82,16 @@ class ProfileDialog : DialogFragment() {
     companion object {
         fun newInstance(): ProfileDialog = ProfileDialog()
 
+        private fun getCurrentUserId(context: Context): String {
+            val prefs = context.getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+            return prefs.getString("USER_PH", "unknown") ?: "unknown"
+        }
+
         fun getProfileImageFile(context: Context): File {
+            val userId = getCurrentUserId(context)
             val dir = File(context.filesDir, "profile_images")
             if (!dir.exists()) dir.mkdirs()
-            return File(dir, "profile_photo.jpg")
+            return File(dir, "profile_photo_$userId.jpg")
         }
 
         fun loadProfileBitmap(context: Context): Bitmap? {
@@ -174,7 +180,7 @@ class ProfileDialog : DialogFragment() {
                     // Load profile image from Cloudinary if available and no local photo
                     val profileUrl = doc.getString("profileImageUrl") ?: ""
                     if (profileUrl.isNotEmpty()) {
-                        prefs.edit().putString("PROFILE_IMAGE_URL", profileUrl).apply()
+                        prefs.edit().putString("PROFILE_IMAGE_URL_$userId", profileUrl).apply()
                         // If no local image, download from Cloudinary
                         val localFile = getProfileImageFile(requireContext())
                         if (!localFile.exists()) {
@@ -240,14 +246,14 @@ class ProfileDialog : DialogFragment() {
 
                 // Clear saved URL
                 val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-                prefs.edit().remove("PROFILE_IMAGE_URL").apply()
+                val userId = prefs.getString("USER_PH", "unknown") ?: "unknown"
+                prefs.edit().remove("PROFILE_IMAGE_URL_$userId").apply()
 
                 // Reset avatar to placeholder
                 ivProfileAvatar.setImageResource(R.drawable.ic_profile_placeholder)
 
                 // Remove URL from Firestore
-                val userId = prefs.getString("USER_PH", "") ?: ""
-                if (userId.isNotEmpty()) {
+                if (userId.isNotEmpty() && userId != "unknown") {
                     db.collection("users").document(userId)
                         .update("profileImageUrl", "")
                 }
