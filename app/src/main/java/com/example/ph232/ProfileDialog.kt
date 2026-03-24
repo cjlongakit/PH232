@@ -195,6 +195,17 @@ class ProfileDialog : DialogFragment() {
                 }
             }
 
+        val btnEditProfile = view.findViewById<MaterialButton>(R.id.btnEditProfile)
+
+        // Show Edit Profile button for admin and staff only
+        if (userRole.lowercase() in listOf("admin", "staff")) {
+            btnEditProfile.visibility = View.VISIBLE
+        }
+
+        btnEditProfile.setOnClickListener {
+            showEditProfileDialog(userId, tvName, tvFullName, tvEmail, tvPhone, layoutPhone)
+        }
+
         btnClose.setOnClickListener {
             // Notify the activity to refresh the header profile image
             (activity as? DashboardActivity)?.loadHeaderProfileImage()
@@ -206,6 +217,113 @@ class ProfileDialog : DialogFragment() {
         val dlg = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
         dlg.window?.setBackgroundDrawableResource(android.R.color.transparent)
         return dlg
+    }
+
+    private fun showEditProfileDialog(
+        userId: String,
+        tvName: TextView,
+        tvFullName: TextView,
+        tvEmail: TextView,
+        tvPhone: TextView,
+        layoutPhone: LinearLayout
+    ) {
+        val layout = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(60, 40, 60, 20)
+        }
+
+        val etFirstName = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            hint = "First Name"
+            setText(tvFullName.text.toString().split(" ").firstOrNull() ?: "")
+        }
+        layout.addView(etFirstName)
+
+        val etLastName = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            hint = "Last Name"
+            val parts = tvFullName.text.toString().split(" ")
+            setText(if (parts.size > 1) parts.subList(1, parts.size).joinToString(" ") else "")
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 16
+            layoutParams = params
+        }
+        layout.addView(etLastName)
+
+        val etEmail = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            hint = "Email"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            val currentEmail = tvEmail.text.toString()
+            setText(if (currentEmail == "—") "" else currentEmail)
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 16
+            layoutParams = params
+        }
+        layout.addView(etEmail)
+
+        val etPhoneEdit = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            hint = "Phone Number"
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+            val currentPhone = tvPhone.text.toString()
+            setText(if (currentPhone == "—") "" else currentPhone)
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 16
+            layoutParams = params
+        }
+        layout.addView(etPhoneEdit)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Edit Profile")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                val firstName = etFirstName.text.toString().trim()
+                val lastName = etLastName.text.toString().trim()
+                val email = etEmail.text.toString().trim()
+                val phone = etPhoneEdit.text.toString().trim()
+
+                if (firstName.isEmpty()) {
+                    android.widget.Toast.makeText(requireContext(), "First Name is required", android.widget.Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                val updates = mutableMapOf<String, Any>(
+                    "FirstName" to firstName,
+                    "LastName" to lastName
+                )
+                if (email.isNotEmpty()) updates["email"] = email
+                if (phone.isNotEmpty()) updates["phone"] = phone
+
+                db.collection("users").document(userId).update(updates)
+                    .addOnSuccessListener {
+                        if (!isAdded) return@addOnSuccessListener
+                        val fullName = "$firstName $lastName".trim()
+                        tvName.text = fullName
+                        tvFullName.text = fullName
+                        tvEmail.text = email.ifEmpty { "—" }
+                        if (phone.isNotEmpty()) {
+                            tvPhone.text = phone
+                            layoutPhone.visibility = View.VISIBLE
+                        }
+                        // Update shared prefs
+                        val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+                        prefs.edit().putString("USER_NAME", fullName).apply()
+                        android.widget.Toast.makeText(requireContext(), "Profile updated", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener { e ->
+                        if (isAdded) {
+                            android.widget.Toast.makeText(requireContext(), "Failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showPhotoPickerDialog() {

@@ -257,12 +257,11 @@ class FirebaseRepository private constructor() {
     fun listenToStaffLetters(caseworker: String, onUpdate: (List<StaffLetter>) -> Unit): ListenerRegistration {
         val listener = staffLettersCollection
             .whereEqualTo("caseworker", caseworker)
-            .orderBy("deadline", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) return@addSnapshotListener
                 val letters = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(StaffLetter::class.java)?.copy(id = doc.id)
-                } ?: emptyList()
+                }?.sortedBy { it.deadline } ?: emptyList()
                 onUpdate(letters)
             }
         activeListeners.add(listener)
@@ -272,12 +271,11 @@ class FirebaseRepository private constructor() {
     fun listenToStaffLettersByStudent(phNumber: String, onUpdate: (List<StaffLetter>) -> Unit): ListenerRegistration {
         val listener = staffLettersCollection
             .whereEqualTo("phNumber", phNumber)
-            .orderBy("deadline", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) return@addSnapshotListener
                 val letters = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(StaffLetter::class.java)?.copy(id = doc.id)
-                } ?: emptyList()
+                }?.sortedBy { it.deadline } ?: emptyList()
                 onUpdate(letters)
             }
         activeListeners.add(listener)

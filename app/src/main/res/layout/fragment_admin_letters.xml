@@ -24,7 +24,8 @@
             android:textAllCaps="false"
             app:icon="@android:drawable/ic_input_add"
             app:cornerRadius="12dp"
-            android:layout_marginEnd="12dp" />
+            android:layout_marginEnd="12dp"
+            android:visibility="gone" />
 
         <View
             android:layout_width="0dp"
