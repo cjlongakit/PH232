@@ -16,6 +16,8 @@ class AdminLettersFragment : Fragment() {
     private lateinit var repository: FirebaseRepository
     private lateinit var lettersContainer: LinearLayout
     private var lettersListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,21 +33,26 @@ class AdminLettersFragment : Fragment() {
         repository = FirebaseRepository.getInstance()
         lettersContainer = view.findViewById(R.id.lettersContainer)
 
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading letters...")
         setupLettersListener()
     }
 
     private fun setupLettersListener() {
-        // Use real-time listener for automatic sync
         lettersListener = repository.listenToLetters { letters ->
             lettersContainer.removeAllViews()
 
             if (letters.isEmpty()) {
                 addEmptyStateView()
-                return@listenToLetters
+            } else {
+                for (letter in letters) {
+                    addLetterCard(letter)
+                }
             }
 
-            for (letter in letters) {
-                addLetterCard(letter)
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
             }
         }
     }
@@ -124,6 +131,7 @@ class AdminLettersFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         lettersListener?.remove()
     }
 }

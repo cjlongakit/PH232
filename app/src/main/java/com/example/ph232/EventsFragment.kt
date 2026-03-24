@@ -23,6 +23,8 @@ class EventsFragment : Fragment() {
     private var currentCalendar = Calendar.getInstance()
     private var events = mutableListOf<Event>()
     private var eventsListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,6 +47,8 @@ class EventsFragment : Fragment() {
         updateMonthYearText()
 
         // Setup real-time listener for events
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading events...")
         setupEventsListener()
 
         // Month navigation
@@ -66,6 +70,10 @@ class EventsFragment : Fragment() {
             events.clear()
             events.addAll(eventsList)
             filterAndDisplayEvents()
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
+            }
         }
     }
 
@@ -135,6 +143,7 @@ class EventsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         eventsListener?.remove()
     }
 }

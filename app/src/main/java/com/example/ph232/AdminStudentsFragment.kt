@@ -16,6 +16,8 @@ class AdminStudentsFragment : Fragment() {
     private lateinit var repository: FirebaseRepository
     private lateinit var studentsContainer: LinearLayout
     private var studentsListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,21 +33,26 @@ class AdminStudentsFragment : Fragment() {
         repository = FirebaseRepository.getInstance()
         studentsContainer = view.findViewById(R.id.studentsContainer)
 
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading students...")
         setupStudentsListener()
     }
 
     private fun setupStudentsListener() {
-        // Use real-time listener for automatic sync
         studentsListener = repository.listenToStudents { students ->
             studentsContainer.removeAllViews()
 
             if (students.isEmpty()) {
                 addEmptyStateView()
-                return@listenToStudents
+            } else {
+                for (student in students) {
+                    addStudentCard(student)
+                }
             }
 
-            for (student in students) {
-                addStudentCard(student)
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
             }
         }
     }
@@ -124,6 +131,7 @@ class AdminStudentsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         studentsListener?.remove()
     }
 }

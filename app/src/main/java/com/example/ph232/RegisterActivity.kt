@@ -19,10 +19,13 @@ import com.google.firebase.firestore.FirebaseFirestore
 class RegisterActivity : AppCompatActivity() {
 
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var progressManager: ProgressManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
+
+        progressManager = ProgressManager(this)
 
         val btnSubmit = findViewById<MaterialButton>(R.id.btnSubmitRegister)
 
@@ -82,9 +85,14 @@ class RegisterActivity : AppCompatActivity() {
             val username = etRegUsername.text.toString().trim()
             val password = etRegPassword.text.toString().trim()
 
+            progressManager.show("Creating account...")
+            btnSubmit.isEnabled = false
+
             db.collection("users").document(username).get()
                 .addOnSuccessListener { document ->
                     if (document.exists()) {
+                        progressManager.dismiss()
+                        btnSubmit.isEnabled = true
                         Toast.makeText(this, "Username is already in use", Toast.LENGTH_LONG).show()
                         etRegUsername.error = "Already in use"
                     } else {
@@ -112,11 +120,14 @@ class RegisterActivity : AppCompatActivity() {
 
                         db.collection("users").document(username).set(userMap)
                             .addOnSuccessListener {
+                                progressManager.dismiss()
                                 val prefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
                                 prefs.edit().putBoolean("SHOW_APPROVAL_DIALOG", true).apply()
                                 finish()
                             }
                             .addOnFailureListener { e ->
+                                progressManager.dismiss()
+                                btnSubmit.isEnabled = true
                                 Toast.makeText(this, "Error saving: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                     }

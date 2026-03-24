@@ -11,19 +11,29 @@
         android:orientation="vertical"
         android:padding="32dp"
         android:gravity="center"
+        android:minWidth="200dp"
         android:background="?attr/colorSurface">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminateTint="@color/purple_primary" />
+
         <ImageView
             android:id="@+id/ivMascotLoader"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="8dp"
             android:src="@drawable/ic_launcher_foreground"/>
+
         <TextView
+            android:id="@+id/tvLoadingMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Loading..."
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textColor="@color/purple_dark"
-            android:layout_marginTop="16dp"/>
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
-

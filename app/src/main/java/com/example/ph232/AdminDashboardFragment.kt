@@ -28,6 +28,8 @@ class AdminDashboardFragment : Fragment() {
     private var lettersListener: ListenerRegistration? = null
     private var eventsListener: ListenerRegistration? = null
     private var attendanceListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var dataLoadedCount = 0
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,6 +56,9 @@ class AdminDashboardFragment : Fragment() {
         recentlyContainer = view.findViewById(R.id.recentlyContainer)
 
         // Setup real-time listeners for dashboard data
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading dashboard...")
+        dataLoadedCount = 0
         setupDashboardListeners()
 
         // Button click listeners
@@ -94,6 +99,13 @@ class AdminDashboardFragment : Fragment() {
         dialog.show(parentFragmentManager, "AddLetterDialog")
     }
 
+    private fun onDataLoaded() {
+        dataLoadedCount++
+        if (dataLoadedCount >= 3) { // letters + events + attendance
+            progressManager?.dismiss()
+        }
+    }
+
     private fun setupDashboardListeners() {
         // Listen to letters for real-time updates
         lettersListener = repository.listenToLetters { letters ->
@@ -111,6 +123,7 @@ class AdminDashboardFragment : Fragment() {
             tvTotalLetters.text = total.toString()
             tvTurnedIn.text = turnedIn.toString()
             tvOnHand.text = onHand.toString()
+            onDataLoaded()
         }
 
         // Listen to events for real-time updates
@@ -133,6 +146,7 @@ class AdminDashboardFragment : Fragment() {
                 }
                 eventsContainer.addView(textView)
             }
+            onDataLoaded()
         }
 
         // Listen to attendance for real-time updates
@@ -153,6 +167,7 @@ class AdminDashboardFragment : Fragment() {
                 }
                 recentlyContainer.addView(textView)
             }
+            onDataLoaded()
         }
     }
 
@@ -173,6 +188,7 @@ class AdminDashboardFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         lettersListener?.remove()
         eventsListener?.remove()
         attendanceListener?.remove()

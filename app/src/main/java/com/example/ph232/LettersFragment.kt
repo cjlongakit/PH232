@@ -29,6 +29,8 @@ class LettersFragment : Fragment() {
     private var completedLetters = mutableListOf<Letter>()
     private var lettersListener: ListenerRegistration? = null
     private var studentId: String = ""
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,6 +62,8 @@ class LettersFragment : Fragment() {
         rvLetters.adapter = adapter
 
         // Setup real-time listener for letters
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading letters...")
         setupLettersListener()
 
         // Tab click listeners
@@ -104,6 +108,10 @@ class LettersFragment : Fragment() {
                 adapter.updateData(pendingLetters)
             } else {
                 adapter.updateData(completedLetters)
+            }
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
             }
         }
     }
@@ -157,7 +165,7 @@ class LettersFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Remove listener when view is destroyed
+        progressManager?.dismiss()
         lettersListener?.remove()
     }
 }

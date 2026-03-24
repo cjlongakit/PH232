@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPassword: TextInputEditText
     private lateinit var btnLogin: MaterialButton
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var progressManager: ProgressManager
     private val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +38,9 @@ class MainActivity : AppCompatActivity() {
 
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        // Initialize loading dialog
+        progressManager = ProgressManager(this)
 
         // Initialize Cloudinary
         CloudinaryHelper.init(this)
@@ -90,8 +94,14 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Firebase login
+            progressManager.show("Signing in...")
+            btnLogin.isEnabled = false
+
             db.collection("users").document(username).get()
                 .addOnSuccessListener { document ->
+                    progressManager.dismiss()
+                    btnLogin.isEnabled = true
+
                     if (document.exists()) {
                         val dbPassword = document.getString("password")
                         val status = document.getString("status")
@@ -128,6 +138,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 .addOnFailureListener {
+                    progressManager.dismiss()
+                    btnLogin.isEnabled = true
                     Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
                 }
         }

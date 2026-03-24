@@ -28,6 +28,8 @@ class StaffStudentsFragment : Fragment() {
     private lateinit var btnAddStudent: MaterialButton
 
     private var studentsListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,6 +73,8 @@ class StaffStudentsFragment : Fragment() {
             }
         })
 
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading students...")
         setupStudentsListener()
     }
 
@@ -79,6 +83,10 @@ class StaffStudentsFragment : Fragment() {
             adapter.updateData(students)
             updateStudentCount()
             updateEmptyState()
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
+            }
         }
     }
 
@@ -151,6 +159,7 @@ class StaffStudentsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         studentsListener?.remove()
     }
 }

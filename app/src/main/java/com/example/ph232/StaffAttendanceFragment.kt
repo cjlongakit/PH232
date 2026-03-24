@@ -47,6 +47,8 @@ class StaffAttendanceFragment : Fragment() {
 
     private var selectedDate: Calendar = Calendar.getInstance()
     private var staffUsername: String = ""
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_staff_attendance, container, false)
@@ -100,6 +102,8 @@ class StaffAttendanceFragment : Fragment() {
         setupActiveSessionListener()
 
         // Load attendance for selected date
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading attendance...")
         loadAttendanceForDate()
     }
 
@@ -190,6 +194,12 @@ class StaffAttendanceFragment : Fragment() {
 
     private fun updateUI(logs: List<AttendanceLog>) {
         adapter.updateData(logs)
+
+        // Dismiss loading on first load
+        if (isFirstLoad) {
+            isFirstLoad = false
+            progressManager?.dismiss()
+        }
 
         // Update stats
         val total = logs.size
@@ -329,6 +339,7 @@ class StaffAttendanceFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         attendanceListener?.let { repository.removeListener(it) }
         sessionListener?.let { repository.removeListener(it) }
     }

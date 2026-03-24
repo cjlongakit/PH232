@@ -31,6 +31,8 @@ class AdminEventsFragment : Fragment() {
     private var events = mutableListOf<Event>()
     private var eventDays = mutableMapOf<Int, MutableList<Event>>() // Day -> List of events
     private var eventsListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -59,6 +61,8 @@ class AdminEventsFragment : Fragment() {
         setupCalendar()
 
         // Setup real-time listener for events
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading events...")
         setupEventsListener()
 
         // Month navigation
@@ -85,6 +89,10 @@ class AdminEventsFragment : Fragment() {
             events.clear()
             events.addAll(eventsList)
             updateEventDaysForMonth()
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
+            }
         }
     }
 
@@ -300,6 +308,7 @@ class AdminEventsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         eventsListener?.remove()
     }
 }

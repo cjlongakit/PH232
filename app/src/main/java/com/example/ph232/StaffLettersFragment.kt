@@ -36,6 +36,8 @@ class StaffLettersFragment : Fragment() {
     private var allLetters = mutableListOf<StaffLetter>()
     private var staffUsername: String = ""
     private var lettersListener: ListenerRegistration? = null
+    private var progressManager: ProgressManager? = null
+    private var isFirstLoad = true
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_staff_letters, container, false)
@@ -64,6 +66,8 @@ class StaffLettersFragment : Fragment() {
         }
         rvLetters.adapter = adapter
 
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading letters...")
         setupLettersListener()
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -82,6 +86,10 @@ class StaffLettersFragment : Fragment() {
             allLetters.clear()
             allLetters.addAll(letters)
             filterList()
+            if (isFirstLoad) {
+                isFirstLoad = false
+                progressManager?.dismiss()
+            }
         }
     }
 
@@ -199,6 +207,7 @@ class StaffLettersFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         lettersListener?.let { repository.removeListener(it) }
     }
 }

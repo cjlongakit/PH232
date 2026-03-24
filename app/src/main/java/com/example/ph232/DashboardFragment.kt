@@ -27,6 +27,8 @@ class DashboardFragment : Fragment() {
     private var lettersListener: ListenerRegistration? = null
     private var eventsListener: ListenerRegistration? = null
     private var studentId: String = ""
+    private var progressManager: ProgressManager? = null
+    private var dataLoadedCount = 0
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,8 +56,20 @@ class DashboardFragment : Fragment() {
         // Load user greeting
         loadUserGreeting()
 
+        // Show loading while data loads
+        progressManager = ProgressManager(requireContext())
+        progressManager?.show("Loading dashboard...")
+        dataLoadedCount = 0
+
         // Setup real-time listeners
         setupDashboardListeners()
+    }
+
+    private fun onDataLoaded() {
+        dataLoadedCount++
+        if (dataLoadedCount >= 2) { // letters + events
+            progressManager?.dismiss()
+        }
     }
 
     private fun loadUserGreeting() {
@@ -88,6 +102,7 @@ class DashboardFragment : Fragment() {
 
             tvCurrentStatus.text = "$pendingCount Letter Pending"
             tvTurnedInCount.text = turnedInCount.toString()
+            onDataLoaded()
         }
 
         // Listen to upcoming events for real-time updates
@@ -116,11 +131,13 @@ class DashboardFragment : Fragment() {
                 tvNextEventDetails.text = "No upcoming events"
                 eventStatusIndicator.visibility = View.GONE
             }
+            onDataLoaded()
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        progressManager?.dismiss()
         lettersListener?.remove()
         eventsListener?.remove()
     }
