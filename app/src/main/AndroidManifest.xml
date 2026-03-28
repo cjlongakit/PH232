@@ -40,6 +40,9 @@
             android:name=".RegisterActivity"
             android:exported="false" />
         <activity
+            android:name=".RegisterStaffActivity"
+            android:exported="false" />
+        <activity
             android:name=".StaffDashboardActivity"
             android:exported="false" />
         <activity

@@ -81,32 +81,45 @@ class MainActivity : AppCompatActivity() {
         val toggleRole = findViewById<MaterialButtonToggleGroup>(R.id.toggleRole)
         val tilPH = findViewById<TextInputLayout>(R.id.tilPH)
         var selectedRole = "student"
+        var prefixWatcher: TextWatcher? = null
 
         // Default to student
         toggleRole.check(R.id.btnRoleStudent)
-        setupStudentPrefix(etPH)
+        prefixWatcher = createPrefixWatcher(etPH)
+        etPH.setText("PH323-")
+        Selection.setSelection(etPH.text, etPH.text?.length ?: 0)
+        etPH.addTextChangedListener(prefixWatcher)
 
         toggleRole.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
-            // Remove any existing text watcher
+            // Remove prefix watcher before clearing
+            if (prefixWatcher != null) {
+                etPH.removeTextChangedListener(prefixWatcher)
+                prefixWatcher = null
+            }
             etPH.text?.clear()
             when (checkedId) {
                 R.id.btnRoleStudent -> {
                     selectedRole = "student"
-                    etPH.hint = "PH323-XXXX"
                     tilPH.hint = "PH323 ID"
-                    setupStudentPrefix(etPH)
+                    etPH.hint = "PH323-XXXX"
+                    etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
+                    // Attach prefix watcher
+                    prefixWatcher = createPrefixWatcher(etPH)
+                    etPH.setText("PH323-")
+                    Selection.setSelection(etPH.text, etPH.text?.length ?: 0)
+                    etPH.addTextChangedListener(prefixWatcher)
                 }
                 R.id.btnRoleStaff -> {
                     selectedRole = "staff"
-                    etPH.hint = "Keyholder Email"
                     tilPH.hint = "Email"
+                    etPH.hint = "Keyholder Email"
                     etPH.inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
                 }
                 R.id.btnRoleAdmin -> {
                     selectedRole = "admin"
-                    etPH.hint = "Username"
                     tilPH.hint = "Username"
+                    etPH.hint = "Username"
                     etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
                 }
             }
@@ -197,7 +210,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.tvRegister).setOnClickListener {
-            startActivity(Intent(this, RegisterActivity::class.java))
+            val options = arrayOf("Beneficiary (Student)", "Staff / Caseworker")
+            AlertDialog.Builder(this)
+                .setTitle("Create Account As")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> startActivity(Intent(this, RegisterActivity::class.java))
+                        1 -> startActivity(Intent(this, RegisterStaffActivity::class.java))
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 
@@ -249,11 +272,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupStudentPrefix(editText: TextInputEditText) {
-        editText.setText("PH323-")
-        editText.inputType = android.text.InputType.TYPE_CLASS_TEXT
-        Selection.setSelection(editText.text, editText.text?.length ?: 0)
-        editText.addTextChangedListener(object : TextWatcher {
+    private fun createPrefixWatcher(editText: TextInputEditText): TextWatcher {
+        return object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
@@ -262,7 +282,7 @@ class MainActivity : AppCompatActivity() {
                     Selection.setSelection(editText.text, editText.text?.length ?: 0)
                 }
             }
-        })
+        }
     }
 
     private fun showForgotPasswordDialog() {

@@ -118,60 +118,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider_color"
-                    android:layout_marginVertical="8dp" />
-
-                <!-- Display Name row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingVertical="4dp">
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        app:boxBackgroundMode="outline"
-                        app:boxCornerRadiusBottomEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusTopStart="8dp">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etDisplayName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="Display Name"
-                            android:inputType="textPersonName"
-                            android:textColor="@color/black"
-                            android:textSize="14sp" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSaveDisplayName"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:text="Save"
-                        android:textAllCaps="false"
-                        android:textSize="12sp"
-                        app:cornerRadius="8dp" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="This name is shown to other users in the app."
-                    android:textSize="11sp"
-                    android:textColor="@color/gray_400"
-                    android:layout_marginTop="4dp" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

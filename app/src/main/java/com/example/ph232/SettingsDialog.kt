@@ -34,8 +34,6 @@ class SettingsDialog : DialogFragment() {
         // ==================== ACCOUNT SECTION ====================
         val tvUserId = view.findViewById<TextView>(R.id.tvUserId)
         val tvUserRole = view.findViewById<TextView>(R.id.tvUserRole)
-        val etDisplayName = view.findViewById<TextInputEditText>(R.id.etDisplayName)
-        val btnSaveDisplayName = view.findViewById<MaterialButton>(R.id.btnSaveDisplayName)
 
         tvUserId.text = userId.ifEmpty { "—" }
         val displayRole = when (userRole.lowercase()) {
@@ -44,36 +42,6 @@ class SettingsDialog : DialogFragment() {
         }
         tvUserRole.text = displayRole.ifEmpty { "—" }
 
-        // Load display name from Firestore
-        if (userId.isNotEmpty()) {
-            db.collection("users").document(userId).get()
-                .addOnSuccessListener { doc ->
-                    if (!isAdded) return@addOnSuccessListener
-                    val displayName = doc.getString("displayName") ?: doc.getString("name") ?: ""
-                    etDisplayName.setText(displayName)
-                }
-        }
-
-        btnSaveDisplayName.setOnClickListener {
-            val newName = etDisplayName.text.toString().trim()
-            if (newName.isEmpty()) {
-                Toast.makeText(requireContext(), "Display name cannot be empty", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (userId.isNotEmpty()) {
-                db.collection("users").document(userId)
-                    .update("displayName", newName)
-                    .addOnSuccessListener {
-                        if (!isAdded) return@addOnSuccessListener
-                        prefs.edit().putString("DISPLAY_NAME", newName).apply()
-                        Toast.makeText(requireContext(), "Display name updated!", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        if (!isAdded) return@addOnFailureListener
-                        Toast.makeText(requireContext(), "Failed to update display name", Toast.LENGTH_SHORT).show()
-                    }
-            }
-        }
 
         // ==================== APPEARANCE SECTION ====================
         val switchDarkMode = view.findViewById<MaterialSwitch>(R.id.switchDarkMode)
