@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/splashRoot"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <!-- Purple background image -->
-    <ImageView
-        android:id="@+id/ivSplashBg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:src="@drawable/ph323_purple_bg"
-        android:contentDescription="Background" />
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background">
 
     <!-- Centered content -->
     <LinearLayout
@@ -28,8 +21,7 @@
             android:layout_height="140dp"
             android:elevation="8dp"
             app:cardCornerRadius="70dp"
-            app:cardElevation="8dp"
-            xmlns:app="http://schemas.android.com/apk/res-auto">
+            app:cardElevation="8dp">
 
             <ImageView
                 android:id="@+id/ivSplashLogo"

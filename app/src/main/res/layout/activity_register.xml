@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_lively_purple"
+    android:background="@drawable/gradient_background"
     android:fillViewport="true">
 
     <LinearLayout
@@ -15,13 +15,14 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Create Account"
+            android:text="Create Beneficiary Account"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:layout_marginTop="20dp"
             android:layout_marginBottom="20dp"/>
 
+        <!-- Card 1: Beneficiary Details -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,31 +35,140 @@
                 android:padding="20dp"
                 android:background="@color/white">
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1. Beneficiary Details" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1. Beneficiary Details"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/purple_dark"
+                    android:layout_marginBottom="16dp"/>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PH323 ID" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenId" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="PH323-XXX" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <!-- PH323 ID -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PH323 ID" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="PH323-XXX"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="First Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenFirstName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="First Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <!-- First Name -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="First Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenFirstName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="First Name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Last Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenLastName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Last Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <!-- Last Name -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Last Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenLastName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Last Name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Birthdate" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenBirthdate" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Tap to select birthdate" android:layout_marginBottom="12dp" android:focusable="false" android:clickable="true"/>
+                <!-- Birthdate with Calendar Icon -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Birthdate" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@android:drawable/ic_menu_my_calendar"
+                    app:endIconTint="@color/purple_primary">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenBirthdate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Tap to select birthdate"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="School Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenSchoolName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="School Name (or N/A)" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <!-- School Name -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="School Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenSchoolName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="School Name (or N/A)"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="School Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenSchoolAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="School Address (or N/A)" android:layout_marginBottom="12dp" android:inputType="textPostalAddress"/>
+                <!-- School Address -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="School Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenSchoolAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="School Address (or N/A)"
+                        android:inputType="textPostalAddress"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Grade Level" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etBenGrade" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Grade Level (or N/A)" android:inputType="text"/>
+                <!-- Grade Level -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Grade Level" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBenGrade"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Grade Level (or N/A)"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Card 2: Guardian Details -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -71,31 +181,140 @@
                 android:padding="20dp"
                 android:background="@color/white">
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2. Guardian Details" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2. Guardian Details"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/purple_dark"
+                    android:layout_marginBottom="16dp"/>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="First Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardFirstName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="First Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <!-- Guardian First Name -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="First Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardFirstName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="First Name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Last Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardLastName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Last Name" android:layout_marginBottom="12dp" android:inputType="textPersonName"/>
+                <!-- Guardian Last Name -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Last Name" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardLastName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Last Name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mobile Number" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardMobile" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Mobile Number" android:layout_marginBottom="12dp" android:inputType="phone"/>
+                <!-- Mobile Number -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Mobile Number" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardMobile"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Mobile Number"
+                        android:inputType="phone"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Home Address" android:layout_marginBottom="12dp" android:inputType="textPostalAddress"/>
+                <!-- Home Address -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Home Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Home Address"
+                        android:inputType="textPostalAddress"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Occupation" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardOccupation" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Occupation" android:layout_marginBottom="12dp" android:inputType="text"/>
+                <!-- Occupation -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Occupation" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardOccupation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Occupation"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Birthdate" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardBirthdate" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Tap to select birthdate" android:layout_marginBottom="12dp" android:focusable="false" android:clickable="true"/>
+                <!-- Guardian Birthdate -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Birthdate" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@android:drawable/ic_menu_my_calendar"
+                    app:endIconTint="@color/purple_primary">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardBirthdate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Tap to select birthdate"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Email Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etGuardEmail" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Email Address" android:inputType="textEmailAddress"/>
+                <!-- Email Address -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Email Address" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etGuardEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Email Address"
+                        android:inputType="textEmailAddress"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Card 3: Account Security -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -108,23 +327,46 @@
                 android:padding="20dp"
                 android:background="@color/white">
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3. Account Security" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/purple_dark" android:layout_marginBottom="16dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3. Account Security"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/purple_dark"
+                    android:layout_marginBottom="16dp"/>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Username" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
-                <EditText android:id="@+id/etRegUsername" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="PH323-XXX" android:layout_marginBottom="12dp" android:inputType="text"/>
-
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Password" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="2dp"/>
-                <TextView android:id="@+id/tvPasswordRules" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Min 6 chars, 1 uppercase, 1 number" android:textSize="11sp" android:textColor="@color/gray_400" android:layout_marginBottom="4dp"/>
+                <!-- Username -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Username (PH323 ID)" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etRegUsername"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="PH323-XXX"
+                        android:inputType="text"
+                        android:textColor="@color/black" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Password -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Password" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="2dp"/>
+                <TextView android:id="@+id/tvPasswordRules"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Min 6 chars, 1 uppercase, 1 number"
+                    android:textSize="11sp" android:textColor="@color/gray_400" android:layout_marginBottom="4dp"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    style="@style/CustomInputStyle"
                     app:endIconMode="password_toggle"
-                    app:boxBackgroundMode="outline"
-                    app:boxCornerRadiusBottomEnd="8dp"
-                    app:boxCornerRadiusBottomStart="8dp"
-                    app:boxCornerRadiusTopEnd="8dp"
-                    app:boxCornerRadiusTopStart="8dp">
+                    app:endIconTint="@color/gray_400">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etRegPassword"
                         android:layout_width="match_parent"
@@ -134,16 +376,15 @@
                         android:textColor="@color/black" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Confirm Password" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
+                <!-- Confirm Password -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Confirm Password" android:textSize="12sp" android:textColor="@color/gray_text" android:layout_marginBottom="4dp"/>
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    style="@style/CustomInputStyle"
                     app:endIconMode="password_toggle"
-                    app:boxBackgroundMode="outline"
-                    app:boxCornerRadiusBottomEnd="8dp"
-                    app:boxCornerRadiusBottomStart="8dp"
-                    app:boxCornerRadiusTopEnd="8dp"
-                    app:boxCornerRadiusTopStart="8dp">
+                    app:endIconTint="@color/gray_400">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etRegConfirmPass"
                         android:layout_width="match_parent"

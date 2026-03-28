@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             when (checkedId) {
                 R.id.btnRoleStudent -> {
                     selectedRole = "student"
-                    tilPH.hint = "PH323 ID"
+                    tilPH.hint = "Student ID"
                     etPH.hint = "PH323-XXXX"
                     etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
                     // Attach prefix watcher
@@ -112,14 +112,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.btnRoleStaff -> {
                     selectedRole = "staff"
-                    tilPH.hint = "Email"
-                    etPH.hint = "Keyholder Email"
+                    tilPH.hint = "Caseworker Email"
+                    etPH.hint = "example@email.com"
                     etPH.inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
                 }
                 R.id.btnRoleAdmin -> {
                     selectedRole = "admin"
-                    tilPH.hint = "Username"
-                    etPH.hint = "Username"
+                    tilPH.hint = "Admin Username"
+                    etPH.hint = "Enter username"
                     etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
                 }
             }
@@ -186,7 +186,38 @@ class MainActivity : AppCompatActivity() {
                         btnLogin.isEnabled = true
                         Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
                     }
+            } else if (selectedRole == "student") {
+                // Student login - check students collection first, then users
+                db.collection("students").document(username).get()
+                    .addOnSuccessListener { studentDoc ->
+                        if (studentDoc.exists()) {
+                            handleLoginDocument(studentDoc, password, username)
+                        } else {
+                            // Fallback to users collection for backward compatibility
+                            db.collection("users").document(username).get()
+                                .addOnSuccessListener { document ->
+                                    if (document.exists()) {
+                                        handleLoginDocument(document, password, username)
+                                    } else {
+                                        progressManager.dismiss()
+                                        btnLogin.isEnabled = true
+                                        Toast.makeText(this, "Account not found. Please register first.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    progressManager.dismiss()
+                                    btnLogin.isEnabled = true
+                                    Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                    }
+                    .addOnFailureListener {
+                        progressManager.dismiss()
+                        btnLogin.isEnabled = true
+                        Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
+                    }
             } else {
+                // Admin login - check users collection
                 db.collection("users").document(username).get()
                     .addOnSuccessListener { document ->
                         if (document.exists()) {
@@ -194,7 +225,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             progressManager.dismiss()
                             btnLogin.isEnabled = true
-                            Toast.makeText(this, "Account not found. Please register first.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Account not found.", Toast.LENGTH_SHORT).show()
                         }
                     }
                     .addOnFailureListener {
@@ -210,17 +241,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.tvRegister).setOnClickListener {
-            val options = arrayOf("Beneficiary (Student)", "Staff / Caseworker")
-            AlertDialog.Builder(this)
-                .setTitle("Create Account As")
-                .setItems(options) { _, which ->
-                    when (which) {
-                        0 -> startActivity(Intent(this, RegisterActivity::class.java))
-                        1 -> startActivity(Intent(this, RegisterStaffActivity::class.java))
-                    }
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+            // Only beneficiary/student registration is allowed
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 
