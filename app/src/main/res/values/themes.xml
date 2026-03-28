@@ -47,6 +47,14 @@
 
     <style name="Theme.PH232" parent="Base.Theme.PH232" />
 
+    <!-- Splash Screen Theme - purple background to avoid white flash -->
+    <style name="Theme.PH232.Splash" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowBackground">@color/purple_dark</item>
+        <item name="android:statusBarColor">@color/purple_dark</item>
+        <item name="android:navigationBarColor">@color/purple_dark</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
     <style name="LoginCardShape" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopLeft">30dp</item>

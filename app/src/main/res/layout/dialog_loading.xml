@@ -24,7 +24,7 @@
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_marginTop="8dp"
-            android:src="@drawable/ic_launcher_foreground"/>
+            android:src="@drawable/ph323_white_bg"/>
 
         <TextView
             android:id="@+id/tvLoadingMessage"

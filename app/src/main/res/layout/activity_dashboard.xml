@@ -33,9 +33,8 @@
                 android:id="@+id/logoImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerInside"
-                android:padding="8dp"
-                android:src="@drawable/ic_launcher_foreground"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ph323_white_bg"
                 android:background="@color/white"
                 android:contentDescription="Logo" />
 
