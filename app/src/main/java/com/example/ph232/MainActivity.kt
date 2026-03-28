@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.text.Editable
+import android.text.Selection
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.widget.TextView
 import android.widget.Toast
@@ -14,7 +17,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : AppCompatActivity() {
@@ -72,6 +77,41 @@ class MainActivity : AppCompatActivity() {
         etPassword = findViewById(R.id.etPassword)
         btnLogin = findViewById(R.id.btnLogin)
 
+        // Role toggle setup
+        val toggleRole = findViewById<MaterialButtonToggleGroup>(R.id.toggleRole)
+        val tilPH = findViewById<TextInputLayout>(R.id.tilPH)
+        var selectedRole = "student"
+
+        // Default to student
+        toggleRole.check(R.id.btnRoleStudent)
+        setupStudentPrefix(etPH)
+
+        toggleRole.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            // Remove any existing text watcher
+            etPH.text?.clear()
+            when (checkedId) {
+                R.id.btnRoleStudent -> {
+                    selectedRole = "student"
+                    etPH.hint = "PH323-XXXX"
+                    tilPH.hint = "PH323 ID"
+                    setupStudentPrefix(etPH)
+                }
+                R.id.btnRoleStaff -> {
+                    selectedRole = "staff"
+                    etPH.hint = "Keyholder Email"
+                    tilPH.hint = "Email"
+                    etPH.inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                }
+                R.id.btnRoleAdmin -> {
+                    selectedRole = "admin"
+                    etPH.hint = "Username"
+                    tilPH.hint = "Username"
+                    etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
+                }
+            }
+        }
+
         btnLogin.setOnClickListener {
             val username = etPH.text.toString().trim()
             val password = etPassword.text.toString().trim()
@@ -97,51 +137,59 @@ class MainActivity : AppCompatActivity() {
             progressManager.show("Signing in...")
             btnLogin.isEnabled = false
 
-            db.collection("users").document(username).get()
-                .addOnSuccessListener { document ->
-                    progressManager.dismiss()
-                    btnLogin.isEnabled = true
-
-                    if (document.exists()) {
-                        val dbPassword = document.getString("password")
-                        val status = document.getString("status")
-                        val role = document.getString("role")
-
-                        if (dbPassword != password) {
-                            Toast.makeText(this, "Incorrect password!", Toast.LENGTH_SHORT).show()
-                        } else if (status == "pending") {
-                            AlertDialog.Builder(this)
-                                .setTitle("Account Pending")
-                                .setMessage("Waiting for approval. Contact your caseworker for any clarification.")
-                                .setPositiveButton("Understood", null)
-                                .show()
-                        } else {
-                            // Login Success
-                            val firstName = document.getString("FirstName") ?: document.getString("firstName") ?: ""
-                            val lastName = document.getString("LastName") ?: document.getString("lastName") ?: ""
-
-                            sharedPreferences.edit()
-                                .putString("USER_PH", username)
-                                .putString("USER_ROLE", role)
-                                .putString("USER_NAME", "$firstName $lastName".trim())
-                                .apply()
-
-                            when (role) {
-                                "admin" -> startActivity(Intent(this, AdminDashboardActivity::class.java))
-                                "staff" -> startActivity(Intent(this, StaffDashboardActivity::class.java))
-                                else -> startActivity(Intent(this, DashboardActivity::class.java))
-                            }
-                            finish()
+            if (selectedRole == "staff") {
+                // Staff login by email - search for user by guardEmail or email
+                db.collection("users")
+                    .whereEqualTo("role", "staff")
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        val matchDoc = documents.documents.firstOrNull { doc ->
+                            val email = doc.getString("guardEmail") ?: doc.getString("email") ?: ""
+                            email.equals(username, ignoreCase = true) || doc.id.equals(username, ignoreCase = true)
                         }
-                    } else {
-                        Toast.makeText(this, "Account not found. Please register first.", Toast.LENGTH_SHORT).show()
+                        if (matchDoc != null) {
+                            handleLoginDocument(matchDoc, password, matchDoc.id)
+                        } else {
+                            // Fallback: try as document ID
+                            db.collection("users").document(username).get()
+                                .addOnSuccessListener { document ->
+                                    if (document.exists()) {
+                                        handleLoginDocument(document, password, username)
+                                    } else {
+                                        progressManager.dismiss()
+                                        btnLogin.isEnabled = true
+                                        Toast.makeText(this, "Staff account not found.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    progressManager.dismiss()
+                                    btnLogin.isEnabled = true
+                                    Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
+                                }
+                        }
                     }
-                }
-                .addOnFailureListener {
-                    progressManager.dismiss()
-                    btnLogin.isEnabled = true
-                    Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
-                }
+                    .addOnFailureListener {
+                        progressManager.dismiss()
+                        btnLogin.isEnabled = true
+                        Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
+                    }
+            } else {
+                db.collection("users").document(username).get()
+                    .addOnSuccessListener { document ->
+                        if (document.exists()) {
+                            handleLoginDocument(document, password, username)
+                        } else {
+                            progressManager.dismiss()
+                            btnLogin.isEnabled = true
+                            Toast.makeText(this, "Account not found. Please register first.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .addOnFailureListener {
+                        progressManager.dismiss()
+                        btnLogin.isEnabled = true
+                        Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
+                    }
+            }
         }
 
         findViewById<TextView>(R.id.tvForgotPassword).setOnClickListener {
@@ -164,6 +212,57 @@ class MainActivity : AppCompatActivity() {
                 .setCancelable(false)
                 .show()
         }
+    }
+
+    private fun handleLoginDocument(document: com.google.firebase.firestore.DocumentSnapshot, password: String, docId: String) {
+        progressManager.dismiss()
+        btnLogin.isEnabled = true
+
+        val dbPassword = document.getString("password")
+        val status = document.getString("status")
+        val role = document.getString("role")
+
+        if (dbPassword != password) {
+            Toast.makeText(this, "Incorrect password!", Toast.LENGTH_SHORT).show()
+        } else if (status == "pending") {
+            AlertDialog.Builder(this)
+                .setTitle("Account Pending")
+                .setMessage("Waiting for approval. Contact your caseworker for any clarification.")
+                .setPositiveButton("Understood", null)
+                .show()
+        } else {
+            val firstName = document.getString("FirstName") ?: document.getString("firstName") ?: ""
+            val lastName = document.getString("LastName") ?: document.getString("lastName") ?: ""
+
+            sharedPreferences.edit()
+                .putString("USER_PH", docId)
+                .putString("USER_ROLE", role)
+                .putString("USER_NAME", "$firstName $lastName".trim())
+                .apply()
+
+            when (role) {
+                "admin" -> startActivity(Intent(this, AdminDashboardActivity::class.java))
+                "staff" -> startActivity(Intent(this, StaffDashboardActivity::class.java))
+                else -> startActivity(Intent(this, DashboardActivity::class.java))
+            }
+            finish()
+        }
+    }
+
+    private fun setupStudentPrefix(editText: TextInputEditText) {
+        editText.setText("PH323-")
+        editText.inputType = android.text.InputType.TYPE_CLASS_TEXT
+        Selection.setSelection(editText.text, editText.text?.length ?: 0)
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (!s.toString().startsWith("PH323-")) {
+                    editText.setText("PH323-")
+                    Selection.setSelection(editText.text, editText.text?.length ?: 0)
+                }
+            }
+        })
     }
 
     private fun showForgotPasswordDialog() {

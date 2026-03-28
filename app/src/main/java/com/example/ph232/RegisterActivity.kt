@@ -1,5 +1,6 @@
 package com.example.ph232
 
+import android.app.DatePickerDialog
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
@@ -14,7 +15,10 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.*
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -46,11 +50,15 @@ class RegisterActivity : AppCompatActivity() {
         val etGuardEmail = findViewById<EditText>(R.id.etGuardEmail)
 
         val etRegUsername = findViewById<EditText>(R.id.etRegUsername)
-        val etRegPassword = findViewById<EditText>(R.id.etRegPassword)
-        val etConfirm = findViewById<EditText>(R.id.etRegConfirmPass)
+        val etRegPassword = findViewById<TextInputEditText>(R.id.etRegPassword)
+        val etConfirm = findViewById<TextInputEditText>(R.id.etRegConfirmPass)
 
         setupPrefix(etBenId)
         setupPrefix(etRegUsername)
+
+        // Setup date pickers for birthdate fields
+        setupDatePicker(etBenBirthdate)
+        setupDatePicker(etGuardBirthdate)
 
         val requiredFields = listOf(
             etBenId, etBenFirstName, etBenLastName, etBenBirthdate, etBenSchoolName, etBenSchoolAddress, etBenGrade,
@@ -77,13 +85,27 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            if (etRegPassword.text.toString() != etConfirm.text.toString()) {
+            // Password validation rules
+            val password = etRegPassword.text.toString().trim()
+            if (password.length < 6) {
+                etRegPassword.error = "Password must be at least 6 characters"
+                return@setOnClickListener
+            }
+            if (!password.any { it.isUpperCase() }) {
+                etRegPassword.error = "Password must contain at least 1 uppercase letter"
+                return@setOnClickListener
+            }
+            if (!password.any { it.isDigit() }) {
+                etRegPassword.error = "Password must contain at least 1 number"
+                return@setOnClickListener
+            }
+
+            if (password != etConfirm.text.toString()) {
                 etConfirm.error = "Passwords do not match"
                 return@setOnClickListener
             }
 
             val username = etRegUsername.text.toString().trim()
-            val password = etRegPassword.text.toString().trim()
 
             progressManager.show("Creating account...")
             btnSubmit.isEnabled = false
@@ -120,6 +142,23 @@ class RegisterActivity : AppCompatActivity() {
 
                         db.collection("users").document(username).set(userMap)
                             .addOnSuccessListener {
+                                // Also save to students collection for the staff listener
+                                val firstName = etBenFirstName.text.toString().trim()
+                                val lastName = etBenLastName.text.toString().trim()
+                                val student = Student(
+                                    name = "$firstName $lastName",
+                                    email = etGuardEmail.text.toString().trim(),
+                                    birthday = etBenBirthdate.text.toString().trim(),
+                                    status = "pending",
+                                    phoneNumber = etGuardMobile.text.toString().trim(),
+                                    address = etGuardAddress.text.toString().trim()
+                                )
+                                val repository = FirebaseRepository.getInstance()
+                                repository.addStudent(student,
+                                    onSuccess = { /* student synced */ },
+                                    onFailure = { /* non-critical */ }
+                                )
+
                                 progressManager.dismiss()
                                 val prefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
                                 prefs.edit().putBoolean("SHOW_APPROVAL_DIALOG", true).apply()
@@ -132,6 +171,17 @@ class RegisterActivity : AppCompatActivity() {
                             }
                     }
                 }
+        }
+    }
+
+    private fun setupDatePicker(editText: EditText) {
+        editText.setOnClickListener {
+            val cal = Calendar.getInstance()
+            DatePickerDialog(this, { _, year, month, day ->
+                cal.set(year, month, day)
+                val sdf = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+                editText.setText(sdf.format(cal.time))
+            }, cal.get(Calendar.YEAR) - 15, cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
     }
 
@@ -159,4 +209,3 @@ class RegisterActivity : AppCompatActivity() {
         editText.hint = builder
     }
 }
-

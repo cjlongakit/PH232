@@ -78,6 +78,11 @@ class AdminEventsFragment : Fragment() {
             updateEventDaysForMonth()
         }
 
+        // Year click - show year picker
+        tvYear.setOnClickListener {
+            showYearPickerDialog()
+        }
+
         // Add event FAB
         fabAddEvent.setOnClickListener {
             showAddEventDialog(null, 0)
@@ -220,6 +225,24 @@ class AdminEventsFragment : Fragment() {
         }
     }
 
+    private fun showYearPickerDialog() {
+        val currentYear = currentCalendar.get(Calendar.YEAR)
+        val years = (2020..2035).toList()
+        val yearStrings = years.map { it.toString() }.toTypedArray()
+        val selectedIndex = years.indexOf(currentYear).coerceAtLeast(0)
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Select Year")
+            .setSingleChoiceItems(yearStrings, selectedIndex) { dialog, which ->
+                currentCalendar.set(Calendar.YEAR, years[which])
+                updateMonthYearText()
+                updateEventDaysForMonth()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun addEventItem(event: Event) {
         val day = parseEventDay(event.date)
         val eventName = event.name.ifEmpty { event.title.ifEmpty { "Untitled Event" } }
@@ -236,7 +259,7 @@ class AdminEventsFragment : Fragment() {
             setBackgroundColor(resources.getColor(R.color.gray_light, null))
         }
 
-        val displayText = "$day - $eventName"
+        val displayText = "${formatFriendlyDay(day)} - $eventName"
         val textView = TextView(requireContext()).apply {
             text = displayText
             textSize = 14f
@@ -261,6 +284,13 @@ class AdminEventsFragment : Fragment() {
         itemLayout.addView(textView)
         itemLayout.addView(deleteButton)
         eventsContainer.addView(itemLayout)
+    }
+
+    private fun formatFriendlyDay(day: Int): String {
+        val cal = currentCalendar.clone() as Calendar
+        cal.set(Calendar.DAY_OF_MONTH, day)
+        val format = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
+        return format.format(cal.time)
     }
 
     private fun deleteEvent(event: Event) {

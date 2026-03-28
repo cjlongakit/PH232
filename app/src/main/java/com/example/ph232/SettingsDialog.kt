@@ -38,7 +38,11 @@ class SettingsDialog : DialogFragment() {
         val btnSaveDisplayName = view.findViewById<MaterialButton>(R.id.btnSaveDisplayName)
 
         tvUserId.text = userId.ifEmpty { "—" }
-        tvUserRole.text = userRole.replaceFirstChar { it.uppercase() }.ifEmpty { "—" }
+        val displayRole = when (userRole.lowercase()) {
+            "staff" -> "Caseworker"
+            else -> userRole.replaceFirstChar { it.uppercase() }
+        }
+        tvUserRole.text = displayRole.ifEmpty { "—" }
 
         // Load display name from Firestore
         if (userId.isNotEmpty()) {
@@ -78,6 +82,18 @@ class SettingsDialog : DialogFragment() {
 
         switchDarkMode.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("DARK_MODE", isChecked).apply()
+            // Save current tab so activity recreates on the same screen
+            val activity = requireActivity()
+            if (activity is AdminDashboardActivity) {
+                val bottomNav = activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNavigation)
+                prefs.edit().putInt("SAVED_TAB", bottomNav.selectedItemId).apply()
+            } else if (activity is StaffDashboardActivity) {
+                val bottomNav = activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNavigation)
+                prefs.edit().putInt("SAVED_TAB", bottomNav.selectedItemId).apply()
+            } else if (activity is DashboardActivity) {
+                val bottomNav = activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNavigation)
+                prefs.edit().putInt("SAVED_TAB", bottomNav.selectedItemId).apply()
+            }
             dismiss()
             AppCompatDelegate.setDefaultNightMode(
                 if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO

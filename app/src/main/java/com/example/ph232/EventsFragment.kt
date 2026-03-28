@@ -102,13 +102,32 @@ class EventsFragment : Fragment() {
 
     private fun addEventCard(event: Event) {
         val eventName = event.name.ifEmpty { event.title.ifEmpty { "Untitled Event" } }
-        val eventDate = event.date.ifEmpty { "No date" }
-        val eventDay = if (event.day > 0) event.day.toString() else ""
+        val rawDate = event.date.ifEmpty { "No date" }
+
+        // Format date to friendly format
+        val friendlyDate = formatFriendlyDate(rawDate)
 
         val cardView = LayoutInflater.from(requireContext()).inflate(R.layout.item_dashboard_event, eventsContainer, false)
         cardView.findViewById<TextView>(R.id.tvEventName).text = eventName
-        cardView.findViewById<TextView>(R.id.tvEventDate).text = if (eventDay.isNotEmpty()) "$eventDay - $eventDate" else eventDate
+        cardView.findViewById<TextView>(R.id.tvEventDate).text = friendlyDate
+        cardView.findViewById<TextView>(R.id.tvEventDate).maxLines = 1
         eventsContainer.addView(cardView)
+    }
+
+    private fun formatFriendlyDate(dateStr: String): String {
+        val formats = listOf(
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        )
+        val outputFormat = SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault())
+        for (fmt in formats) {
+            try {
+                val date = fmt.parse(dateStr)
+                if (date != null) return outputFormat.format(date)
+            } catch (_: Exception) {}
+        }
+        return dateStr
     }
 
     private fun isEventInCurrentMonth(dateStr: String): Boolean {

@@ -72,9 +72,23 @@
         android:layout_marginTop="8dp"
         android:text="Code: XXXXXXXX"
         android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="middle"
         android:textColor="@color/gray_text"
         android:fontFamily="monospace"
         app:layout_constraintTop_toBottomOf="@id/tvQrHint"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/tvExpirationTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Expires: --:--"
+        android:textSize="12sp"
+        android:textColor="@color/orange_500"
+        app:layout_constraintTop_toBottomOf="@id/tvQrCodeValue"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -84,7 +98,7 @@
         android:layout_marginTop="20dp"
         android:orientation="horizontal"
         android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/tvQrCodeValue"
+        app:layout_constraintTop_toBottomOf="@id/tvExpirationTime"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <com.google.android.material.button.MaterialButton

@@ -65,8 +65,12 @@
                     android:layout_height="wrap_content"
                     android:text="2026"
                     android:textSize="14sp"
-                    android:textColor="@color/black"
+                    android:textColor="@color/purple_primary"
+                    android:textStyle="bold"
                     android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     android:background="@drawable/rounded_border" />
 
             </LinearLayout>

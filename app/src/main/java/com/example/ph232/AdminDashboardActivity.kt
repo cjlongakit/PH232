@@ -95,8 +95,14 @@ class AdminDashboardActivity : AppCompatActivity() {
         }
 
         // Set default selection or restore saved tab
-        val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
-        bottomNavigation.selectedItemId = savedTab
+        val savedTabFromSettings = sharedPreferences.getInt("SAVED_TAB", 0)
+        if (savedTabFromSettings != 0) {
+            sharedPreferences.edit().remove("SAVED_TAB").apply()
+            bottomNavigation.selectedItemId = savedTabFromSettings
+        } else {
+            val savedTab = savedInstanceState?.getInt("SELECTED_TAB", R.id.nav_dashboard) ?: R.id.nav_dashboard
+            bottomNavigation.selectedItemId = savedTab
+        }
 
         // Start notification listener
         val userId = sharedPreferences.getString("USER_PH", "") ?: ""

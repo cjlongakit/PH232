@@ -24,6 +24,7 @@ class QrGeneratorDialog : DialogFragment() {
 
     private lateinit var tvEventName: TextView
     private lateinit var tvQrCodeValue: TextView
+    private lateinit var tvExpirationTime: TextView
     private lateinit var ivQrCode: ImageView
     private lateinit var btnNewCode: MaterialButton
     private lateinit var btnClose: MaterialButton
@@ -77,6 +78,7 @@ class QrGeneratorDialog : DialogFragment() {
 
         tvEventName = view.findViewById(R.id.tvEventName)
         tvQrCodeValue = view.findViewById(R.id.tvQrCodeValue)
+        tvExpirationTime = view.findViewById(R.id.tvExpirationTime)
         ivQrCode = view.findViewById(R.id.ivQrCode)
         btnNewCode = view.findViewById(R.id.btnNewCode)
         btnClose = view.findViewById(R.id.btnClose)
@@ -239,6 +241,11 @@ class QrGeneratorDialog : DialogFragment() {
                 onSuccess = { sessionId ->
                     currentSessionId = sessionId
                     Toast.makeText(requireContext(), "QR code generated and activated", Toast.LENGTH_SHORT).show()
+                    // Show expiration time (2 hours from now)
+                    val expCal = Calendar.getInstance()
+                    expCal.add(Calendar.MINUTE, 120)
+                    val expFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                    tvExpirationTime.text = "Expires: ${expFormat.format(expCal.time)}"
 
                     // Also save to events if needed
                     if (eventId.isNotEmpty()) {

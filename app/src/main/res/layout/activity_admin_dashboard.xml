@@ -97,6 +97,7 @@
         app:itemIconTint="@color/bottom_nav_color"
         app:itemTextColor="@color/bottom_nav_color"
         app:labelVisibilityMode="labeled"
+        app:itemIconSize="20dp"
         app:menu="@menu/admin_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent" />
 

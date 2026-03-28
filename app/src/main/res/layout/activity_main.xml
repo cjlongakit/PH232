@@ -57,8 +57,7 @@
         <!-- Login Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             app:cardCornerRadius="30dp"
             app:cardElevation="8dp"
             app:strokeWidth="0dp"
@@ -66,7 +65,7 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="30dp"
                 android:background="@color/white">
@@ -80,10 +79,60 @@
                     android:textStyle="bold"
                     android:textColor="@color/black"
                     android:layout_gravity="center"
-                    android:layout_marginBottom="30dp" />
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Role Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Login as:"
+                    android:textSize="13sp"
+                    android:textColor="@color/gray_text"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleRole"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRoleStudent"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Student"
+                        android:textSize="12sp"
+                        android:textAllCaps="false" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRoleStaff"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Staff"
+                        android:textSize="12sp"
+                        android:textAllCaps="false" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRoleAdmin"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:text="Admin"
+                        android:textSize="12sp"
+                        android:textAllCaps="false" />
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <!-- PH Input Field -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilPH"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -95,7 +144,7 @@
                         android:id="@+id/etPH"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="PH-XXXX"
+                        android:hint="PH323-XXXX"
                         android:inputType="text"
                         android:textColor="@color/black"
                         android:background="@null" />
@@ -145,11 +194,6 @@
                     android:textSize="16sp"
                     style="@style/CustomButtonStyle" />
 
-                <!-- Spacer -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
 
                 <!-- Register Link -->
                 <LinearLayout

@@ -153,10 +153,6 @@ class AddLetterDialog : DialogFragment() {
             return
         }
 
-        if (!isForAllStudents && (studentId.length != 3 || !studentId.all { it.isDigit() })) {
-            etStudentId.error = "Student ID must be 3 digits"
-            return
-        }
 
         // Get current date as created date
         val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())

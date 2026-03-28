@@ -225,6 +225,20 @@ class AddStudentDialog : DialogFragment() {
 
                     db.collection("users").document(username).set(userMap)
                         .addOnSuccessListener {
+                            // Also save to students collection for the real-time listener
+                            val repository = FirebaseRepository.getInstance()
+                            val student = Student(
+                                name = "$firstName $lastName",
+                                email = guardEmail,
+                                birthday = birthdate,
+                                status = "approved",
+                                phoneNumber = guardMobile,
+                                address = guardAddress
+                            )
+                            repository.addStudent(student,
+                                onSuccess = { /* student synced */ },
+                                onFailure = { /* non-critical */ }
+                            )
                             onStudentAddedListener?.invoke(true, "Student $firstName $lastName added successfully!")
                             dismiss()
                         }

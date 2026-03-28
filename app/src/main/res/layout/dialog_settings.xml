@@ -165,6 +165,14 @@
                         app:cornerRadius="8dp" />
                 </LinearLayout>
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="This name is shown to other users in the app."
+                    android:textSize="11sp"
+                    android:textColor="@color/gray_400"
+                    android:layout_marginTop="4dp" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
