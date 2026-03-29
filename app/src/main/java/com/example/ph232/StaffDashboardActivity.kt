@@ -1,27 +1,21 @@
 package com.example.ph232
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import com.google.android.material.card.MaterialCardView
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.card.MaterialCardView
 
 class StaffDashboardActivity : AppCompatActivity() {
 
@@ -29,10 +23,6 @@ class StaffDashboardActivity : AppCompatActivity() {
     private lateinit var tvHeaderTitle: TextView
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var profileCard: MaterialCardView
-
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { /* granted or not, we still start the Firestore listener */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val darkPrefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
@@ -43,9 +33,25 @@ class StaffDashboardActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_staff_dashboard)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.fragmentContainer)) { v, insets ->
+        val headerContent = findViewById<View>(R.id.headerContent)
+        val fragmentContainer = findViewById<View>(R.id.fragmentContainer)
+        val bottomNavView = findViewById<View>(R.id.bottomNavigation)
+
+        val headerStart = headerContent.paddingLeft
+        val headerTop = headerContent.paddingTop
+        val headerEnd = headerContent.paddingRight
+        val headerBottom = headerContent.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.staffDashboardRoot)) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, 0, systemBars.right, 0)
+            headerContent.setPadding(
+                headerStart,
+                headerTop + systemBars.top,
+                headerEnd,
+                headerBottom
+            )
+            fragmentContainer.setPadding(systemBars.left, 0, systemBars.right, 0)
+            bottomNavView.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
 

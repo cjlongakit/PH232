@@ -20,7 +20,9 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.firestore.ListenerRegistration
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class AdminAttendanceFragment : Fragment() {
 
@@ -33,7 +35,8 @@ class AdminAttendanceFragment : Fragment() {
     private lateinit var tvLateCount: TextView
     private lateinit var tvRemovedCount: TextView
     private lateinit var cardActiveSession: MaterialCardView
-    private lateinit var tvActiveSessionInfo: TextView
+    private lateinit var tvActiveSessionTitle: TextView
+    private lateinit var tvActiveSessionMeta: TextView
     private lateinit var btnDeactivateSession: MaterialButton
     private lateinit var rvAttendanceLogs: RecyclerView
     private lateinit var layoutEmpty: LinearLayout
@@ -57,7 +60,6 @@ class AdminAttendanceFragment : Fragment() {
 
         repository = FirebaseRepository.getInstance()
 
-        // Initialize views
         tvSelectedDate = view.findViewById(R.id.tvSelectedDate)
         btnPrevDate = view.findViewById(R.id.btnPrevDate)
         btnNextDate = view.findViewById(R.id.btnNextDate)
@@ -67,16 +69,15 @@ class AdminAttendanceFragment : Fragment() {
         tvLateCount = view.findViewById(R.id.tvLateCount)
         tvRemovedCount = view.findViewById(R.id.tvRemovedCount)
         cardActiveSession = view.findViewById(R.id.cardActiveSession)
-        tvActiveSessionInfo = view.findViewById(R.id.tvActiveSessionInfo)
+        tvActiveSessionTitle = view.findViewById(R.id.tvActiveSessionTitle)
+        tvActiveSessionMeta = view.findViewById(R.id.tvActiveSessionMeta)
         btnDeactivateSession = view.findViewById(R.id.btnDeactivateSession)
         rvAttendanceLogs = view.findViewById(R.id.rvAttendanceLogs)
         layoutEmpty = view.findViewById(R.id.layoutEmpty)
 
-        // Get admin username
         val prefs = requireActivity().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
         adminUsername = prefs.getString("USER_PH", "admin") ?: "admin"
 
-        // Setup RecyclerView
         adapter = AttendanceLogAdapter(
             logs = emptyList(),
             onEditClick = { log -> showEditDialog(log) },
@@ -85,14 +86,10 @@ class AdminAttendanceFragment : Fragment() {
         rvAttendanceLogs.layoutManager = LinearLayoutManager(requireContext())
         rvAttendanceLogs.adapter = adapter
 
-        // Setup date navigation
         updateDateDisplay()
         setupDateNavigation()
-
-        // Setup active session listener
         setupActiveSessionListener()
 
-        // Load attendance for selected date
         progressManager = ProgressManager(requireContext())
         progressManager?.show("Loading attendance...")
         loadAttendanceForDate()
@@ -136,7 +133,7 @@ class AdminAttendanceFragment : Fragment() {
         val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -1) }
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val displayFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        val displayFormat = SimpleDateFormat("EEE, MMM dd", Locale.getDefault())
 
         val selectedDateStr = dateFormat.format(selectedDate.time)
         val todayStr = dateFormat.format(today.time)
@@ -150,16 +147,11 @@ class AdminAttendanceFragment : Fragment() {
     }
 
     private fun loadAttendanceForDate() {
-        // Remove previous listener
         attendanceListener?.let { repository.removeListener(it) }
 
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate.time)
-
-        // Listen to ALL attendance (no Firestore query filters to avoid index issues)
-        // Filter by selected date in code
         attendanceListener = repository.listenToAllAttendance { allRecords ->
             val records = allRecords.filter { it.date == dateStr }
-            // Convert Attendance objects to AttendanceLog for the adapter
             val logs = records.map { att ->
                 AttendanceLog(
                     id = att.id,
@@ -186,13 +178,11 @@ class AdminAttendanceFragment : Fragment() {
     private fun updateUI(logs: List<AttendanceLog>) {
         adapter.updateData(logs)
 
-        // Dismiss loading on first load
         if (isFirstLoad) {
             isFirstLoad = false
             progressManager?.dismiss()
         }
 
-        // Update stats
         val total = logs.size
         val present = logs.count { it.status.lowercase() == "present" }
         val late = logs.count { it.status.lowercase() == "late" }
@@ -203,7 +193,6 @@ class AdminAttendanceFragment : Fragment() {
         tvLateCount.text = late.toString()
         tvRemovedCount.text = removed.toString()
 
-        // Show/hide empty state
         if (logs.isEmpty()) {
             layoutEmpty.visibility = View.VISIBLE
             rvAttendanceLogs.visibility = View.GONE
@@ -217,13 +206,13 @@ class AdminAttendanceFragment : Fragment() {
         sessionListener = repository.listenToActiveQrSession { session ->
             if (session != null) {
                 cardActiveSession.visibility = View.VISIBLE
-                val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                val expiresTime = if (session.expiresAt > 0) {
-                    timeFormat.format(Date(session.expiresAt))
+                val expiresText = if (session.expiresAt > 0) {
+                    SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()).format(Date(session.expiresAt))
                 } else {
                     "No expiry"
                 }
-                tvActiveSessionInfo.text = "Active: ${session.eventName} • Expires: $expiresTime"
+                tvActiveSessionTitle.text = session.eventName.ifBlank { "Attendance QR is active" }
+                tvActiveSessionMeta.text = "Expires: $expiresText"
 
                 btnDeactivateSession.setOnClickListener {
                     showDeactivateConfirmation(session)
@@ -262,7 +251,6 @@ class AdminAttendanceFragment : Fragment() {
         val rbAbsent = dialogView.findViewById<RadioButton>(R.id.rbAbsent)
         val etNotes = dialogView.findViewById<EditText>(R.id.etNotes)
 
-        // Set current values
         when (log.status.lowercase()) {
             "present" -> rbPresent.isChecked = true
             "late" -> rbLate.isChecked = true
@@ -325,4 +313,3 @@ class AdminAttendanceFragment : Fragment() {
         sessionListener?.let { repository.removeListener(it) }
     }
 }
-

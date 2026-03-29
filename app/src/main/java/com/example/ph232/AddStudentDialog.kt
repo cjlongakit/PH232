@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 class AddStudentDialog : DialogFragment() {
@@ -200,8 +201,38 @@ class AddStudentDialog : DialogFragment() {
                     etRegUsername.error = "Username already in use"
                     Toast.makeText(requireContext(), "Username is already in use", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Save to Firestore 'users' collection (same schema as RegisterActivity)
+                    val approvalStatus = "pending"
+                    val fullName = "$firstName $lastName".trim()
+                    val studentData = hashMapOf(
+                        "benId" to benId,
+                        "name" to fullName,
+                        "firstName" to firstName,
+                        "lastName" to lastName,
+                        "birthday" to birthdate,
+                        "schoolName" to schoolName,
+                        "schoolAddress" to schoolAddress,
+                        "gradeLevel" to grade,
+                        "guardianFirstName" to guardFirstName,
+                        "guardianLastName" to guardLastName,
+                        "phoneNumber" to guardMobile,
+                        "address" to guardAddress,
+                        "guardianOccupation" to guardOccupation,
+                        "guardianBirthday" to guardBirthdate,
+                        "email" to guardEmail,
+                        "username" to username,
+                        "password" to password,
+                        "role" to "student",
+                        "status" to approvalStatus,
+                        "approvalStatus" to approvalStatus,
+                        "assignedCaseworkerId" to null,
+                        "assignedCaseworkerName" to "",
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+
                     val userMap = hashMapOf(
+                        "id" to username,
+                        "name" to fullName,
                         "benId" to benId,
                         "FirstName" to firstName,
                         "LastName" to lastName,
@@ -218,28 +249,23 @@ class AddStudentDialog : DialogFragment() {
                         "guardBirthdate" to guardBirthdate,
                         "guardEmail" to guardEmail,
 
+                        "email" to guardEmail,
                         "password" to password,
-                        "role" to "beneficiary",
-                        "status" to "approved"  // Admin-added students are auto-approved
+                        "role" to "student",
+                        "status" to approvalStatus,
+                        "approvalStatus" to approvalStatus,
+                        "assignedCaseworkerId" to null,
+                        "assignedCaseworkerName" to "",
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "updatedAt" to FieldValue.serverTimestamp()
                     )
 
-                    db.collection("users").document(username).set(userMap)
+                    val batch = db.batch()
+                    batch.set(db.collection("users").document(username), userMap)
+                    batch.set(db.collection("students").document(username), studentData)
+                    batch.commit()
                         .addOnSuccessListener {
-                            // Also save to students collection for the real-time listener
-                            val repository = FirebaseRepository.getInstance()
-                            val student = Student(
-                                name = "$firstName $lastName",
-                                email = guardEmail,
-                                birthday = birthdate,
-                                status = "approved",
-                                phoneNumber = guardMobile,
-                                address = guardAddress
-                            )
-                            repository.addStudent(student,
-                                onSuccess = { /* student synced */ },
-                                onFailure = { /* non-critical */ }
-                            )
-                            onStudentAddedListener?.invoke(true, "Student $firstName $lastName added successfully!")
+                            onStudentAddedListener?.invoke(true, "Student account created. Approval is still required.")
                             dismiss()
                         }
                         .addOnFailureListener { e ->

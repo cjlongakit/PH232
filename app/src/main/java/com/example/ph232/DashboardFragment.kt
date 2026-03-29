@@ -75,7 +75,7 @@ class DashboardFragment : Fragment() {
     private fun loadUserGreeting() {
         val userName = sharedPreferences.getString("USER_NAME", "User") ?: "User"
         val firstName = userName.split(" ").firstOrNull() ?: userName
-        tvGreeting.text = "Hello, $firstName!!"
+        tvGreeting.text = "Hello, $firstName"
     }
 
     private fun setupDashboardListeners() {
@@ -100,7 +100,11 @@ class DashboardFragment : Fragment() {
                 }
             }
 
-            tvCurrentStatus.text = "$pendingCount Letter Pending"
+            tvCurrentStatus.text = when (pendingCount) {
+                0 -> "No pending letters"
+                1 -> "1 letter pending"
+                else -> "$pendingCount letters pending"
+            }
             tvTurnedInCount.text = turnedInCount.toString()
             onDataLoaded()
         }
@@ -118,13 +122,13 @@ class DashboardFragment : Fragment() {
                 // Format the date for display
                 try {
                     val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val outputFormat = SimpleDateFormat("EEEE MMM dd, yyyy", Locale.getDefault())
+                    val outputFormat = SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault())
                     val date = inputFormat.parse(eventDate)
                     val formattedDate = if (date != null) outputFormat.format(date) else eventDate
-                    tvNextEventDetails.text = "$formattedDate: $eventName"
+                    tvNextEventDetails.text = "$formattedDate - $eventName"
                     eventStatusIndicator.visibility = View.VISIBLE
                 } catch (e: Exception) {
-                    tvNextEventDetails.text = "$eventDate: $eventName"
+                    tvNextEventDetails.text = "$eventDate - $eventName"
                     eventStatusIndicator.visibility = View.VISIBLE
                 }
             } else {

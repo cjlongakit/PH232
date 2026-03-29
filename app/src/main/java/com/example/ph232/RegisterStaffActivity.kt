@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 class RegisterStaffActivity : AppCompatActivity() {
@@ -89,21 +90,26 @@ class RegisterStaffActivity : AppCompatActivity() {
                         etUsername.error = "Already in use"
                     } else {
                         val userMap = hashMapOf(
+                            "name" to "${etFirstName.text.toString().trim()} ${etLastName.text.toString().trim()}".trim(),
                             "FirstName" to etFirstName.text.toString().trim(),
                             "LastName" to etLastName.text.toString().trim(),
+                            "email" to etEmail.text.toString().trim(),
                             "guardEmail" to etEmail.text.toString().trim(),
+                            "phone" to etMobile.text.toString().trim(),
                             "guardMobile" to etMobile.text.toString().trim(),
                             "position" to etPosition.text.toString().trim(),
                             "password" to password,
-                            "role" to "staff",
-                            "status" to "pending"
+                            "role" to "caseworker",
+                            "status" to "approved",
+                            "approvalStatus" to "approved",
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
                         )
 
                         db.collection("users").document(username).set(userMap)
                             .addOnSuccessListener {
                                 progressManager.dismiss()
-                                val prefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-                                prefs.edit().putBoolean("SHOW_APPROVAL_DIALOG", true).apply()
+                                Toast.makeText(this, "Caseworker account created.", Toast.LENGTH_SHORT).show()
                                 finish()
                             }
                             .addOnFailureListener { e ->

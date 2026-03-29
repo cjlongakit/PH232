@@ -1,67 +1,88 @@
 package com.example.ph232
 
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.LinearLayout
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
-import androidx.cardview.widget.CardView
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import java.util.Locale
 
 class AdminLettersFragment : Fragment() {
 
-    private lateinit var repository: FirebaseRepository
-    private lateinit var lettersContainer: LinearLayout
+    private lateinit var tabLayout: TabLayout
+    private lateinit var etSearch: TextInputEditText
+    private lateinit var spinnerTypeFilter: Spinner
+    private lateinit var spinnerSort: Spinner
+    private lateinit var tvResultsSummary: TextView
+    private lateinit var rvLetters: RecyclerView
+    private lateinit var tvEmptyState: TextView
+    private lateinit var btnPrevPage: MaterialButton
+    private lateinit var btnNextPage: MaterialButton
+    private lateinit var tvPageInfo: TextView
+    private lateinit var adapter: AdminLetterMonitorAdapter
+
+    private val db = FirebaseFirestore.getInstance()
     private var lettersListener: ListenerRegistration? = null
     private var progressManager: ProgressManager? = null
     private var isFirstLoad = true
-    private var allLetters = mutableListOf<Letter>()
-    private var currentFilter = "All"
-    private var currentSearch = ""
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
+    private var allLetters = mutableListOf<StaffLetter>()
+    private var visibleLetters = emptyList<StaffLetter>()
+    private var currentSearch = ""
+    private var currentTypeFilter = "All Types"
+    private var currentSort = "Deadline: Soonest"
+    private var currentPage = 0
+    private val pageSize = 8
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_admin_letters, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository = FirebaseRepository.getInstance()
-        lettersContainer = view.findViewById(R.id.lettersContainer)
+        tabLayout = view.findViewById(R.id.tabLayoutLetters)
+        etSearch = view.findViewById(R.id.etSearchLetters)
+        spinnerTypeFilter = view.findViewById(R.id.spinnerTypeFilter)
+        spinnerSort = view.findViewById(R.id.spinnerSort)
+        tvResultsSummary = view.findViewById(R.id.tvResultsSummary)
+        rvLetters = view.findViewById(R.id.rvAdminLetters)
+        tvEmptyState = view.findViewById(R.id.tvEmptyState)
+        btnPrevPage = view.findViewById(R.id.btnPrevPage)
+        btnNextPage = view.findViewById(R.id.btnNextPage)
+        tvPageInfo = view.findViewById(R.id.tvPageInfo)
 
-        // Wire up search
-        val etSearch = view.findViewById<EditText>(R.id.etSearchLetters)
-        etSearch.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                currentSearch = s.toString().trim()
-                filterAndDisplayLetters()
-            }
-        })
+        setupTabs()
+        setupFilterControls()
 
-        // Wire up chip group filters
-        val chipGroupView = findChipGroup(view)
-        chipGroupView?.setOnCheckedStateChangeListener { group, checkedIds ->
-            if (checkedIds.isNotEmpty()) {
-                val chip = group.findViewById<Chip>(checkedIds[0])
-                currentFilter = chip?.text?.toString() ?: "All"
-            } else {
-                currentFilter = "All"
+        rvLetters.layoutManager = LinearLayoutManager(requireContext())
+        adapter = AdminLetterMonitorAdapter(emptyList())
+        rvLetters.adapter = adapter
+
+        btnPrevPage.setOnClickListener {
+            if (currentPage > 0) {
+                currentPage--
+                applyFiltersAndPagination()
             }
-            filterAndDisplayLetters()
+        }
+
+        btnNextPage.setOnClickListener {
+            val totalPages = getTotalPages(visibleLetters.size)
+            if (currentPage < totalPages - 1) {
+                currentPage++
+                applyFiltersAndPagination()
+            }
         }
 
         progressManager = ProgressManager(requireContext())
@@ -69,211 +90,158 @@ class AdminLettersFragment : Fragment() {
         setupLettersListener()
     }
 
-    private fun findChipGroup(view: View): ChipGroup? {
-        if (view is ChipGroup) return view
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                val found = findChipGroup(view.getChildAt(i))
-                if (found != null) return found
-            }
+    private fun setupTabs() {
+        val statuses = listOf("ALL", "PENDING", "ON HAND", "TURN IN", "LATE")
+        statuses.forEach { status ->
+            tabLayout.addTab(tabLayout.newTab().setText(status))
         }
-        return null
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                currentPage = 0
+                applyFiltersAndPagination()
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab?) = Unit
+        })
+    }
+
+    private fun setupFilterControls() {
+        val typeOptions = arrayOf("All Types", "Gift", "Reply", "General", "Final Letter", "First Letter")
+        spinnerTypeFilter.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, typeOptions)
+        spinnerTypeFilter.onItemSelectedListener = SimpleItemSelectedListener { position ->
+            currentTypeFilter = typeOptions[position]
+            currentPage = 0
+            applyFiltersAndPagination()
+        }
+
+        val sortOptions = arrayOf("Deadline: Soonest", "Deadline: Latest", "Student: A-Z", "Student: Z-A", "Newest First")
+        spinnerSort.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, sortOptions)
+        spinnerSort.onItemSelectedListener = SimpleItemSelectedListener { position ->
+            currentSort = sortOptions[position]
+            currentPage = 0
+            applyFiltersAndPagination()
+        }
+
+        etSearch.doAfterTextChanged { text ->
+            currentSearch = text?.toString()?.trim().orEmpty()
+            currentPage = 0
+            applyFiltersAndPagination()
+        }
     }
 
     private fun setupLettersListener() {
-        lettersListener = repository.listenToLetters { letters ->
-            allLetters.clear()
-            allLetters.addAll(letters)
-            filterAndDisplayLetters()
+        lettersListener = db.collection("staff_letters")
+            .addSnapshotListener { snapshot, _ ->
+                allLetters = snapshot?.documents
+                    ?.mapNotNull { doc -> doc.toObject(StaffLetter::class.java)?.copy(id = doc.id) }
+                    ?.toMutableList()
+                    ?: mutableListOf()
 
-            if (isFirstLoad) {
-                isFirstLoad = false
-                progressManager?.dismiss()
-            }
-        }
-    }
-
-    private fun filterAndDisplayLetters() {
-        lettersContainer.removeAllViews()
-
-        var filtered = allLetters.toList()
-
-        // Apply status filter
-        when (currentFilter.lowercase()) {
-            "pending" -> filtered = filtered.filter { it.status.lowercase() in listOf("pending") }
-            "on hand" -> filtered = filtered.filter { it.status.lowercase() in listOf("on hand", "on_hand") }
-            "outdated" -> filtered = filtered.filter { it.status.lowercase() in listOf("outdated", "late") }
-            "turned in" -> filtered = filtered.filter { it.status.lowercase() in listOf("turned in", "turned_in", "completed") }
-        }
-
-        // Apply search filter
-        if (currentSearch.isNotEmpty()) {
-            filtered = filtered.filter {
-                it.name.contains(currentSearch, ignoreCase = true) ||
-                it.title.contains(currentSearch, ignoreCase = true) ||
-                it.studentName.contains(currentSearch, ignoreCase = true) ||
-                it.studentId.contains(currentSearch, ignoreCase = true)
-            }
-        }
-
-        if (filtered.isEmpty()) {
-            addEmptyStateView()
-        } else {
-            for (letter in filtered) {
-                addLetterCard(letter)
-            }
-        }
-    }
-
-    private fun addLetterCard(letter: Letter) {
-        val cardView = CardView(requireContext()).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 16)
-            }
-            radius = 12f
-            cardElevation = 4f
-            setContentPadding(24, 16, 24, 16)
-        }
-
-        val contentLayout = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        val nameView = TextView(requireContext()).apply {
-            text = letter.name.ifEmpty { letter.title.ifEmpty { "Untitled Letter" } }
-            textSize = 16f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-        }
-
-        val studentView = TextView(requireContext()).apply {
-            text = "Student: ${letter.studentName.ifEmpty { letter.studentId.ifEmpty { "All Students" } }}"
-            textSize = 14f
-            setTextColor(resources.getColor(R.color.purple_primary, null))
-        }
-
-        val deadlineView = TextView(requireContext()).apply {
-            text = "Deadline: ${letter.deadline.ifEmpty { "No deadline set" }}"
-            textSize = 14f
-            setTextColor(resources.getColor(R.color.gray_text, null))
-        }
-
-        val statusView = TextView(requireContext()).apply {
-            text = "Status: ${letter.status.ifEmpty { "Pending" }}"
-            textSize = 12f
-            setTextColor(
-                when (letter.status.lowercase()) {
-                    "turned in", "turned_in", "completed" -> resources.getColor(R.color.status_turned_in, null)
-                    "on hand", "pending" -> resources.getColor(R.color.status_on_hand, null)
-                    else -> resources.getColor(R.color.gray_text, null)
+                applyFiltersAndPagination()
+                if (isFirstLoad) {
+                    isFirstLoad = false
+                    progressManager?.dismiss()
                 }
-            )
-        }
-
-        val dateCreatedView = TextView(requireContext()).apply {
-            text = "Created: ${letter.dateCreated.ifEmpty { "Unknown" }}"
-            textSize = 12f
-            setTextColor(resources.getColor(R.color.gray_text, null))
-        }
-
-        contentLayout.addView(nameView)
-        contentLayout.addView(studentView)
-        contentLayout.addView(deadlineView)
-        contentLayout.addView(statusView)
-        contentLayout.addView(dateCreatedView)
-
-        // Show assigned caseworker if set
-        val assignedBy = letter.assignedBy
-        if (assignedBy.isNotEmpty() && assignedBy != "admin") {
-            val caseworkerView = TextView(requireContext()).apply {
-                text = "Caseworker: $assignedBy"
-                textSize = 12f
-                setTextColor(resources.getColor(R.color.purple_light, null))
-            }
-            contentLayout.addView(caseworkerView)
-        }
-
-        cardView.addView(contentLayout)
-
-        // Click on card to assign caseworker
-        cardView.setOnClickListener {
-            showAssignCaseworkerDialog(letter)
-        }
-
-        lettersContainer.addView(cardView)
-    }
-
-    private fun showAssignCaseworkerDialog(letter: Letter) {
-        // Fetch all staff users to populate the dropdown
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            .collection("users")
-            .whereEqualTo("role", "staff")
-            .get()
-            .addOnSuccessListener { documents ->
-                if (!isAdded) return@addOnSuccessListener
-                val caseworkerNames = mutableListOf<String>()
-                val caseworkerIds = mutableListOf<String>()
-
-                for (doc in documents) {
-                    val first = doc.getString("FirstName") ?: ""
-                    val last = doc.getString("LastName") ?: ""
-                    val name = "$first $last".trim().ifEmpty { doc.id }
-                    caseworkerNames.add(name)
-                    caseworkerIds.add(doc.id)
-                }
-
-                if (caseworkerNames.isEmpty()) {
-                    Toast.makeText(requireContext(), "No caseworkers found", Toast.LENGTH_SHORT).show()
-                    return@addOnSuccessListener
-                }
-
-                val currentIndex = caseworkerNames.indexOfFirst {
-                    it.equals(letter.assignedBy, ignoreCase = true)
-                }.coerceAtLeast(0)
-
-                android.app.AlertDialog.Builder(requireContext())
-                    .setTitle("Assign Caseworker")
-                    .setSingleChoiceItems(caseworkerNames.toTypedArray(), currentIndex) { dialog, which ->
-                        val selectedName = caseworkerNames[which]
-                        repository.updateLetterStatus(
-                            letterId = letter.id,
-                            status = letter.status,
-                            isCompleted = letter.isCompleted,
-                            onSuccess = {
-                                // Update assignedBy field separately
-                                com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                    .collection("letters").document(letter.id)
-                                    .update("assignedBy", selectedName)
-                                    .addOnSuccessListener {
-                                        if (isAdded) Toast.makeText(requireContext(), "Caseworker assigned: $selectedName", Toast.LENGTH_SHORT).show()
-                                    }
-                            },
-                            onFailure = { e ->
-                                if (isAdded) Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
             }
     }
 
-    private fun addEmptyStateView() {
-        val textView = TextView(requireContext()).apply {
-            text = "No letters found"
-            textSize = 16f
-            gravity = android.view.Gravity.CENTER
-            setPadding(0, 32, 0, 32)
+    private fun applyFiltersAndPagination() {
+        val selectedStatus = tabLayout.getTabAt(tabLayout.selectedTabPosition)?.text?.toString().orEmpty()
+        visibleLetters = allLetters
+            .asSequence()
+            .filter { letter ->
+                selectedStatus == "ALL" || letter.status.equals(selectedStatus, ignoreCase = true)
+            }
+            .filter { letter ->
+                currentTypeFilter == "All Types" || letter.type.equals(currentTypeFilter, ignoreCase = true)
+            }
+            .filter { letter ->
+                if (currentSearch.isBlank()) return@filter true
+                letter.studentName.contains(currentSearch, ignoreCase = true) ||
+                    letter.phNumber.contains(currentSearch, ignoreCase = true) ||
+                    letter.type.contains(currentSearch, ignoreCase = true) ||
+                    letter.deadline.contains(currentSearch, ignoreCase = true) ||
+                    letter.caseworker.contains(currentSearch, ignoreCase = true)
+            }
+            .sortedWith(buildSortComparator())
+            .toList()
+
+        val totalPages = getTotalPages(visibleLetters.size)
+        if (currentPage >= totalPages) {
+            currentPage = if (totalPages == 0) 0 else totalPages - 1
         }
-        lettersContainer.addView(textView)
+
+        val pageStart = currentPage * pageSize
+        val pageItems = visibleLetters.drop(pageStart).take(pageSize)
+        adapter.updateData(pageItems)
+
+        tvEmptyState.visibility = if (visibleLetters.isEmpty()) View.VISIBLE else View.GONE
+        rvLetters.visibility = if (visibleLetters.isEmpty()) View.GONE else View.VISIBLE
+
+        val shownStart = if (visibleLetters.isEmpty()) 0 else pageStart + 1
+        val shownEnd = if (visibleLetters.isEmpty()) 0 else pageStart + pageItems.size
+        tvResultsSummary.text = "Showing $shownStart-$shownEnd of ${visibleLetters.size} letters"
+        tvPageInfo.text = if (totalPages == 0) "Page 0 of 0" else "Page ${currentPage + 1} of $totalPages"
+        btnPrevPage.isEnabled = currentPage > 0
+        btnNextPage.isEnabled = currentPage < totalPages - 1
+    }
+
+    private fun buildSortComparator(): Comparator<StaffLetter> {
+        return when (currentSort) {
+            "Deadline: Latest" -> compareByDescending<StaffLetter> { it.deadline }.thenBy { it.studentName.lowercase(Locale.getDefault()) }
+            "Student: A-Z" -> compareBy<StaffLetter> { it.studentName.lowercase(Locale.getDefault()) }.thenBy { it.deadline }
+            "Student: Z-A" -> compareByDescending<StaffLetter> { it.studentName.lowercase(Locale.getDefault()) }.thenBy { it.deadline }
+            "Newest First" -> compareByDescending<StaffLetter> { it.dateCreated }.thenBy { it.deadline }
+            else -> compareBy<StaffLetter> { it.deadline }.thenBy { it.studentName.lowercase(Locale.getDefault()) }
+        }
+    }
+
+    private fun getTotalPages(totalItems: Int): Int {
+        return if (totalItems == 0) 0 else ((totalItems - 1) / pageSize) + 1
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         progressManager?.dismiss()
         lettersListener?.remove()
+    }
+}
+
+class AdminLetterMonitorAdapter(
+    private var letters: List<StaffLetter>
+) : RecyclerView.Adapter<AdminLetterMonitorAdapter.ViewHolder>() {
+
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvType: TextView = view.findViewById(R.id.tvLetterType)
+        val tvStudentName: TextView = view.findViewById(R.id.tvStudentName)
+        val tvCaseworker: TextView = view.findViewById(R.id.tvCaseworker)
+        val tvDeadline: TextView = view.findViewById(R.id.tvDeadline)
+        val tvCreated: TextView = view.findViewById(R.id.tvCreated)
+        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_admin_letter_monitor, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val letter = letters[position]
+        holder.tvType.text = letter.type.ifBlank { "General" }
+        holder.tvStudentName.text = "${letter.studentName.ifBlank { "Unknown Student" }} (${letter.phNumber.ifBlank { "No PH ID" }})"
+        holder.tvCaseworker.text = "Caseworker: ${letter.caseworker.ifBlank { "Unassigned" }}"
+        holder.tvDeadline.text = "Deadline: ${letter.deadline.ifBlank { "No deadline set" }}"
+        holder.tvCreated.text = "Created: ${letter.dateCreated.ifBlank { "Unknown" }}"
+        holder.tvStatus.text = letter.status.ifBlank { "PENDING" }.uppercase(Locale.getDefault())
+    }
+
+    override fun getItemCount() = letters.size
+
+    fun updateData(newLetters: List<StaffLetter>) {
+        letters = newLetters
+        notifyDataSetChanged()
     }
 }

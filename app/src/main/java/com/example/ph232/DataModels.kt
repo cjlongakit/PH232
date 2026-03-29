@@ -7,12 +7,16 @@ import java.util.Date
 data class Student(
     @DocumentId
     val id: String = "",
+    val benId: String = "",
     val name: String = "",
     val email: String = "",
     val section: String = "",
     val birthday: String = "",
     val year: String = "",
     val status: String = "active",
+    val approvalStatus: String = "",
+    val assignedCaseworkerId: String? = null,
+    val assignedCaseworkerName: String = "",
     val phoneNumber: String = "",
     val address: String = "",
     val profileImageUrl: String = "",
@@ -145,6 +149,7 @@ data class StaffLetter(
 data class User(
     @DocumentId
     val id: String = "",
+    val name: String = "",
     val benId: String = "",
     val firstName: String = "",
     val lastName: String = "",
@@ -160,8 +165,11 @@ data class User(
     val guardBirthdate: String = "",
     val guardEmail: String = "",
     val password: String = "",
-    val role: String = "beneficiary", // beneficiary, staff, admin
+    val role: String = "beneficiary", // beneficiary/student, staff/caseworker, admin
     val status: String = "pending",   // pending, approved, rejected
+    val approvalStatus: String = "pending",
+    val assignedCaseworkerId: String? = null,
+    val assignedCaseworkerName: String = "",
     @ServerTimestamp
     val createdAt: Date? = null
 )

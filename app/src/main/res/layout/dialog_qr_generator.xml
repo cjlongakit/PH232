@@ -11,117 +11,139 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Attendance QR Code"
+        android:textColor="@color/purple_primary"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@color/purple_primary"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tvEventName"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Event Name"
-        android:textSize="16sp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Attendance"
         android:textColor="@color/gray_dark"
-        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle" />
+
+    <TextView
+        android:id="@+id/tvQrHint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:text="A new QR is used each day and expires at the end of the day."
+        android:textColor="@color/gray_text"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvEventName" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/qrContainer"
         android:layout_width="250dp"
         android:layout_height="250dp"
-        android:layout_marginTop="16dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp"
+        android:layout_marginTop="18dp"
         app:cardBackgroundColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/tvEventName"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/tvQrHint">
 
         <ImageView
             android:id="@+id/ivQrCode"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:contentDescription="QR Code"
             android:padding="16dp"
-            android:scaleType="fitCenter"
-            android:contentDescription="QR Code" />
+            android:scaleType="fitCenter" />
 
     </androidx.cardview.widget.CardView>
 
     <TextView
-        android:id="@+id/tvQrHint"
-        android:layout_width="wrap_content"
+        android:id="@+id/tvQrCodeValue"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Students can scan this to mark attendance"
-        android:textSize="14sp"
-        android:textColor="@color/gray_text"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/qrContainer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/tvQrCodeValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Code: XXXXXXXX"
-        android:textSize="12sp"
-        android:maxLines="1"
         android:ellipsize="middle"
-        android:textColor="@color/gray_text"
         android:fontFamily="monospace"
-        app:layout_constraintTop_toBottomOf="@id/tvQrHint"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Token: XXXXXXXX"
+        android:textColor="@color/gray_text"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/qrContainer" />
 
     <TextView
         android:id="@+id/tvExpirationTime"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Expires: --:--"
-        android:textSize="12sp"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="Valid until --"
         android:textColor="@color/orange_500"
-        app:layout_constraintTop_toBottomOf="@id/tvQrCodeValue"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/tvQrCodeValue" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:orientation="horizontal"
+        android:layout_marginTop="22dp"
         android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/tvExpirationTime"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvExpirationTime">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnNewCode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="New Code"
-            android:textColor="@color/purple_primary"
             style="@style/Widget.Material3.Button.OutlinedButton"
-            app:strokeColor="@color/purple_primary"
-            app:strokeWidth="1dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:text="Refresh"
+            android:textColor="@color/purple_primary"
             app:icon="@drawable/ic_refresh"
-            app:iconTint="@color/purple_primary" />
+            app:iconTint="@color/purple_primary"
+            app:strokeColor="@color/purple_primary"
+            app:strokeWidth="1dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDownload"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="6dp"
+            android:layout_weight="1"
+            android:text="Download"
+            android:textColor="@color/purple_primary"
+            app:icon="@drawable/ic_download"
+            app:iconTint="@color/purple_primary"
+            app:strokeColor="@color/purple_primary"
+            app:strokeWidth="1dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClose"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
             android:text="Close"
             app:backgroundTint="@color/purple_primary" />
 
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

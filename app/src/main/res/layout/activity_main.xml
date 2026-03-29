@@ -10,94 +10,111 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:background="@drawable/gradient_background"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:background="@drawable/gradient_background">
+        android:paddingStart="24dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="32dp">
 
-        <!-- Top Section with Logo -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:gravity="center"
-            android:paddingTop="60dp"
-            android:paddingBottom="30dp">
+            android:orientation="vertical"
+            android:paddingTop="32dp"
+            android:paddingBottom="24dp">
 
-            <!-- Circular Logo Placeholder -->
             <androidx.cardview.widget.CardView
                 android:layout_width="120dp"
                 android:layout_height="120dp"
+                android:layout_gravity="center"
                 app:cardCornerRadius="60dp"
-                app:cardElevation="4dp"
-                android:layout_gravity="center">
+                app:cardElevation="4dp">
 
                 <ImageView
                     android:id="@+id/logoImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/ph323_white_bg"
                     android:background="@color/white"
-                    android:contentDescription="Logo" />
+                    android:contentDescription="Logo"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ph323_white_bg" />
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
                 android:text="PH 323"
-                android:textSize="32sp"
-                android:textStyle="bold"
                 android:textColor="@color/white"
-                android:layout_marginTop="16dp" />
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:alpha="0.9"
+                android:text="Sign in to continue"
+                android:textColor="@color/white"
+                android:textSize="15sp" />
 
         </LinearLayout>
 
-        <!-- Login Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="0dp"
-            app:shapeAppearanceOverlay="@style/LoginCardShape"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="28dp"
             app:cardElevation="8dp"
-            app:strokeWidth="0dp"
-            android:layout_marginTop="20dp">
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/white"
                 android:orientation="vertical"
-                android:padding="30dp"
-                android:background="@color/white">
+                android:padding="24dp">
 
-                <!-- Log in Title -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
                     android:text="Log in"
-                    android:textSize="26sp"
-                    android:textStyle="bold"
                     android:textColor="@color/black"
-                    android:layout_gravity="center"
-                    android:layout_marginBottom="16dp" />
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
 
-                <!-- Role Selector -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Login as:"
-                    android:textSize="13sp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="24dp"
+                    android:text="Use your assigned role and login details"
                     android:textColor="@color/gray_text"
-                    android:layout_marginBottom="6dp" />
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Continue as"
+                    android:textColor="@color/gray_text"
+                    android:textSize="13sp" />
 
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/toggleRole"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="20dp"
-                    app:singleSelection="true"
-                    app:selectionRequired="true">
+                    android:layout_marginBottom="24dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRoleStudent"
@@ -125,13 +142,13 @@
 
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                <!-- PH Input Field -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilPH"
+                    style="@style/CustomInputStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    style="@style/CustomInputStyle"
+                    android:hint="Student ID"
                     app:startIconDrawable="@android:drawable/ic_menu_myplaces"
                     app:startIconTint="@color/gray_400">
 
@@ -139,81 +156,73 @@
                         android:id="@+id/etPH"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="PH323-XXXX"
+                        android:background="@null"
                         android:inputType="text"
-                        android:textColor="@color/black"
-                        android:background="@null" />
+                        android:textColor="@color/black" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Password Input Field -->
                 <com.google.android.material.textfield.TextInputLayout
+                    style="@style/CustomInputStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/CustomInputStyle"
-                    app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
-                    app:startIconTint="@color/gray_400"
+                    android:layout_marginBottom="10dp"
+                    android:hint="Password"
                     app:endIconMode="password_toggle"
-                    app:endIconTint="@color/gray_400">
+                    app:endIconTint="@color/gray_400"
+                    app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
+                    app:startIconTint="@color/gray_400">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etPassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Password"
+                        android:background="@null"
                         android:inputType="textPassword"
-                        android:textColor="@color/black"
-                        android:background="@null" />
+                        android:textColor="@color/black" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Forgot Password Link -->
                 <TextView
                     android:id="@+id/tvForgotPassword"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Forgot Password?"
-                    android:textSize="14sp"
-                    android:textColor="@color/link_blue"
                     android:layout_gravity="end"
-                    android:layout_marginBottom="30dp"
-                    android:paddingTop="4dp" />
+                    android:layout_marginBottom="28dp"
+                    android:paddingTop="4dp"
+                    android:text="Forgot Password?"
+                    android:textColor="@color/link_blue"
+                    android:textSize="14sp" />
 
-                <!-- Login Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnLogin"
+                    style="@style/CustomButtonStyle"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:text="Sign In"
-                    android:textSize="16sp"
-                    style="@style/CustomButtonStyle" />
+                    android:textSize="16sp" />
 
-
-                <!-- Register Link -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:layout_gravity="center"
-                    android:layout_marginTop="20dp"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginTop="22dp"
+                    android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Don't Have an Account? "
-                        android:textSize="14sp"
-                        android:textColor="@color/gray_text" />
+                        android:textColor="@color/gray_text"
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/tvRegister"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Register Now"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/link_blue" />
+                        android:textColor="@color/link_blue"
+                        android:textStyle="bold" />
 
                 </LinearLayout>
 

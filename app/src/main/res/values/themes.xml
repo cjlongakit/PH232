@@ -21,28 +21,43 @@
     </style>
 
     <style name="CustomCardStyle" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardElevation">2dp</item>
-        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardCornerRadius">16dp</item>
         <item name="cardBackgroundColor">@color/card_background</item>
     </style>
 
     <style name="CustomButtonStyle" parent="Widget.Material3.Button">
-        <item name="cornerRadius">8dp</item>
+        <item name="cornerRadius">14dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">50dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:paddingHorizontal">16dp</item>
         <item name="android:paddingVertical">12dp</item>
     </style>
 
     <style name="CustomInputStyle" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">8dp</item>
-        <item name="boxCornerRadiusTopEnd">8dp</item>
-        <item name="boxCornerRadiusBottomStart">8dp</item>
-        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxBackgroundColor">@color/white</item>
         <item name="boxStrokeColor">@color/purple_primary</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
         <item name="hintTextColor">@color/purple_primary</item>
-        <item name="android:paddingBottom">8dp</item>
+        <item name="endIconTint">@color/gray_400</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+
+    <style name="CustomOutlinedButtonStyle" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">14dp</item>
+        <item name="android:minHeight">50dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="strokeColor">@color/gray_300</item>
     </style>
 
     <style name="Theme.PH232" parent="Base.Theme.PH232" />

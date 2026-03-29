@@ -20,6 +20,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : AppCompatActivity() {
@@ -102,7 +103,6 @@ class MainActivity : AppCompatActivity() {
                 R.id.btnRoleStudent -> {
                     selectedRole = "student"
                     tilPH.hint = "Student ID"
-                    etPH.hint = "PH323-XXXX"
                     etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
                     // Attach prefix watcher
                     prefixWatcher = createPrefixWatcher(etPH)
@@ -113,13 +113,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.btnRoleStaff -> {
                     selectedRole = "staff"
                     tilPH.hint = "Caseworker Email"
-                    etPH.hint = "example@email.com"
                     etPH.inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
                 }
                 R.id.btnRoleAdmin -> {
                     selectedRole = "admin"
                     tilPH.hint = "Admin Username"
-                    etPH.hint = "Enter username"
                     etPH.inputType = android.text.InputType.TYPE_CLASS_TEXT
                 }
             }
@@ -151,9 +149,9 @@ class MainActivity : AppCompatActivity() {
             btnLogin.isEnabled = false
 
             if (selectedRole == "staff") {
-                // Staff login by email - search for user by guardEmail or email
+                // Caseworker login by email or username
                 db.collection("users")
-                    .whereEqualTo("role", "staff")
+                    .whereIn("role", listOf("staff", "caseworker"))
                     .get()
                     .addOnSuccessListener { documents ->
                         val matchDoc = documents.documents.firstOrNull { doc ->
@@ -187,14 +185,13 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this, "Database error. Check connection.", Toast.LENGTH_SHORT).show()
                     }
             } else if (selectedRole == "student") {
-                // Student login - check students collection first, then users
-                db.collection("students").document(username).get()
-                    .addOnSuccessListener { studentDoc ->
-                        if (studentDoc.exists()) {
-                            handleLoginDocument(studentDoc, password, username)
+                db.collection("users").document(username).get()
+                    .addOnSuccessListener { userDoc ->
+                        if (userDoc.exists()) {
+                            handleLoginDocument(userDoc, password, username)
                         } else {
-                            // Fallback to users collection for backward compatibility
-                            db.collection("users").document(username).get()
+                            // Fallback to students collection for backward compatibility
+                            db.collection("students").document(username).get()
                                 .addOnSuccessListener { document ->
                                     if (document.exists()) {
                                         handleLoginDocument(document, password, username)
@@ -252,27 +249,27 @@ class MainActivity : AppCompatActivity() {
             sharedPreferences.edit().putBoolean("SHOW_APPROVAL_DIALOG", false).apply()
             AlertDialog.Builder(this)
                 .setTitle("Registration Submitted")
-                .setMessage("Waiting for approval. Contact your caseworker for any clarification.")
+                .setMessage("Your account is pending approval.")
                 .setPositiveButton("Understood", null)
                 .setCancelable(false)
                 .show()
         }
     }
 
-    private fun handleLoginDocument(document: com.google.firebase.firestore.DocumentSnapshot, password: String, docId: String) {
+    private fun handleLoginDocument(document: DocumentSnapshot, password: String, docId: String) {
         progressManager.dismiss()
         btnLogin.isEnabled = true
 
         val dbPassword = document.getString("password")
-        val status = document.getString("status")
-        val role = document.getString("role")
+        val role = resolveCanonicalRole(document.getString("role"))
+        val approvalStatus = resolveApprovalStatus(document)
 
         if (dbPassword != password) {
             Toast.makeText(this, "Incorrect password!", Toast.LENGTH_SHORT).show()
-        } else if (status == "pending") {
+        } else if (approvalStatus != "approved") {
             AlertDialog.Builder(this)
-                .setTitle("Account Pending")
-                .setMessage("Waiting for approval. Contact your caseworker for any clarification.")
+                .setTitle("Pending Approval")
+                .setMessage("Your account is pending approval.")
                 .setPositiveButton("Understood", null)
                 .show()
         } else {
@@ -281,16 +278,44 @@ class MainActivity : AppCompatActivity() {
 
             sharedPreferences.edit()
                 .putString("USER_PH", docId)
-                .putString("USER_ROLE", role)
+                .putString("USER_ROLE", toStoredRole(role))
                 .putString("USER_NAME", "$firstName $lastName".trim())
                 .apply()
 
-            when (role) {
+            when (toStoredRole(role)) {
                 "admin" -> startActivity(Intent(this, AdminDashboardActivity::class.java))
                 "staff" -> startActivity(Intent(this, StaffDashboardActivity::class.java))
                 else -> startActivity(Intent(this, DashboardActivity::class.java))
             }
             finish()
+        }
+    }
+
+    private fun resolveApprovalStatus(document: DocumentSnapshot): String {
+        val explicit = document.getString("approvalStatus")?.trim()?.lowercase().orEmpty()
+        if (explicit.isNotBlank()) return explicit
+
+        return when (document.getString("status")?.trim()?.lowercase()) {
+            "approved", "active" -> "approved"
+            "pending" -> "pending"
+            else -> "approved"
+        }
+    }
+
+    private fun resolveCanonicalRole(rawRole: String?): String {
+        return when (rawRole?.trim()?.lowercase()) {
+            "caseworker", "staff" -> "caseworker"
+            "beneficiary", "student", "user" -> "student"
+            "admin" -> "admin"
+            else -> "student"
+        }
+    }
+
+    private fun toStoredRole(canonicalRole: String): String {
+        return when (canonicalRole) {
+            "caseworker" -> "staff"
+            "admin" -> "admin"
+            else -> "student"
         }
     }
 

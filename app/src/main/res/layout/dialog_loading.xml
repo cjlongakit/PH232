@@ -1,39 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="8dp">
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/gray_200"
+    app:strokeWidth="1dp">
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="32dp"
         android:gravity="center"
-        android:minWidth="200dp"
-        android:background="?attr/colorSurface">
+        android:minWidth="220dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="28dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="24dp">
 
-        <ProgressBar
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:indeterminateTint="@color/purple_primary" />
+        <FrameLayout
+            android:layout_width="76dp"
+            android:layout_height="76dp">
 
-        <ImageView
-            android:id="@+id/ivMascotLoader"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginTop="8dp"
-            android:src="@drawable/ph323_white_bg"/>
+            <ProgressBar
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:indeterminateTint="@color/purple_primary" />
+
+            <ImageView
+                android:id="@+id/ivMascotLoader"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ph323_white_bg" />
+
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tvLoadingMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Loading..."
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="Please wait"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="15sp"
-            android:textColor="@color/purple_dark"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp"/>
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="Updating your data securely"
+            android:textColor="@color/gray_text"
+            android:textSize="12sp" />
+
     </LinearLayout>
-</androidx.cardview.widget.CardView>
+
+</com.google.android.material.card.MaterialCardView>

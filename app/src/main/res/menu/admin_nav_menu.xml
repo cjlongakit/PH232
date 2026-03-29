@@ -7,21 +7,6 @@
         android:title="Dashboard" />
 
     <item
-        android:id="@+id/nav_attendance"
-        android:icon="@drawable/ic_qr_scan"
-        android:title="Attendance" />
-
-    <item
-        android:id="@+id/nav_letters"
-        android:icon="@drawable/ic_letters"
-        android:title="Letters" />
-
-    <item
-        android:id="@+id/nav_events"
-        android:icon="@drawable/ic_events"
-        android:title="Events" />
-
-    <item
         android:id="@+id/nav_students"
         android:icon="@drawable/ic_profile_placeholder"
         android:title="Students" />

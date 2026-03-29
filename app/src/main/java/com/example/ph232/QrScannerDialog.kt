@@ -8,7 +8,13 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -206,6 +212,7 @@ class QrScannerDialog : DialogFragment() {
                         studentName = studentName,
                         qrSession = qrSession,
                         onSuccess = { attendanceId ->
+                            playScanSuccessFeedback()
                             onAttendanceRecorded?.invoke(true, "Attendance recorded successfully for ${qrSession.eventName}!")
                             dismiss()
                         },
@@ -238,6 +245,7 @@ class QrScannerDialog : DialogFragment() {
                         eventName = event.name.ifEmpty { event.title },
                         eventQR = eventQR,
                         onSuccess = { attendanceId ->
+                            playScanSuccessFeedback()
                             onAttendanceRecorded?.invoke(true, "Attendance recorded successfully for ${event.name.ifEmpty { event.title }}!")
                             dismiss()
                         },
@@ -254,6 +262,7 @@ class QrScannerDialog : DialogFragment() {
                         eventName = "Unknown Event",
                         eventQR = eventQR,
                         onSuccess = { attendanceId ->
+                            playScanSuccessFeedback()
                             onAttendanceRecorded?.invoke(true, "Attendance recorded successfully!")
                             dismiss()
                         },
@@ -272,6 +281,7 @@ class QrScannerDialog : DialogFragment() {
                     eventName = "Event",
                     eventQR = eventQR,
                     onSuccess = { attendanceId ->
+                        playScanSuccessFeedback()
                         onAttendanceRecorded?.invoke(true, "Attendance recorded successfully!")
                         dismiss()
                     },
@@ -290,6 +300,34 @@ class QrScannerDialog : DialogFragment() {
             btnFlash.setImageResource(
                 if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off
             )
+        }
+    }
+
+    private fun playScanSuccessFeedback() {
+        try {
+            val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90)
+            toneGenerator.startTone(ToneGenerator.TONE_PROP_ACK, 180)
+            view?.postDelayed({ toneGenerator.release() }, 250)
+        } catch (_: Exception) {
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = requireContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator.vibrate(
+                    VibrationEffect.createOneShot(120, VibrationEffect.DEFAULT_AMPLITUDE)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(120, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(120)
+                }
+            }
+        } catch (_: Exception) {
         }
     }
 

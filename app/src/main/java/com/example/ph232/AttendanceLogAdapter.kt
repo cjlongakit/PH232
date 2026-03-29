@@ -33,7 +33,7 @@ class AttendanceLogAdapter(
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val log = logs[position]
 
         holder.tvStudentName.text = log.studentName.ifEmpty { "Unknown Student" }
@@ -47,7 +47,8 @@ class AttendanceLogAdapter(
         } catch (e: Exception) {
             log.scanTime
         }
-        holder.tvScanTime.text = displayTime
+        val datePart = log.scanDate.ifEmpty { "No date" }
+        holder.tvScanTime.text = "$datePart - $displayTime"
 
         // Set status and colors
         val context = holder.itemView.context

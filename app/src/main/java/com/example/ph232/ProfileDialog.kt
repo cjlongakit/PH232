@@ -4,15 +4,16 @@ import android.Manifest
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -21,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
+import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -30,7 +32,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class ProfileDialog : DialogFragment() {
 
@@ -38,7 +41,6 @@ class ProfileDialog : DialogFragment() {
     private lateinit var ivProfileAvatar: ImageView
     private var cameraImageUri: Uri? = null
 
-    // Camera launcher → sends result to UCrop
     private val takePictureLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -47,7 +49,6 @@ class ProfileDialog : DialogFragment() {
         }
     }
 
-    // Gallery launcher → sends result to UCrop
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -56,7 +57,6 @@ class ProfileDialog : DialogFragment() {
         }
     }
 
-    // UCrop result launcher
     private val cropLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -71,7 +71,6 @@ class ProfileDialog : DialogFragment() {
         }
     }
 
-    // Camera permission launcher
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -103,101 +102,132 @@ class ProfileDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_profile, null)
         ivProfileAvatar = view.findViewById(R.id.ivProfileAvatar)
+
         val tvName = view.findViewById<TextView>(R.id.tvProfileName)
         val tvRole = view.findViewById<TextView>(R.id.tvProfileRole)
         val tvId = view.findViewById<TextView>(R.id.tvProfileId)
-        val tvFullName = view.findViewById<TextView>(R.id.tvProfileFullName)
-        val tvEmail = view.findViewById<TextView>(R.id.tvProfileEmail)
         val tvStatus = view.findViewById<TextView>(R.id.tvProfileStatus)
+        val tvPosition = view.findViewById<TextView>(R.id.tvProfilePosition)
+        val tvFullName = view.findViewById<TextView>(R.id.tvProfileFullName)
+        val tvBirthdate = view.findViewById<TextView>(R.id.tvProfileBirthdate)
+        val tvSchoolName = view.findViewById<TextView>(R.id.tvProfileSchoolName)
+        val tvSchoolAddress = view.findViewById<TextView>(R.id.tvProfileSchoolAddress)
+        val tvGrade = view.findViewById<TextView>(R.id.tvProfileGrade)
+        val tvGuardianName = view.findViewById<TextView>(R.id.tvProfileGuardianName)
+        val tvEmail = view.findViewById<TextView>(R.id.tvProfileEmail)
         val tvPhone = view.findViewById<TextView>(R.id.tvProfilePhone)
+        val tvGuardianAddress = view.findViewById<TextView>(R.id.tvProfileGuardianAddress)
+        val tvGuardianOccupation = view.findViewById<TextView>(R.id.tvProfileGuardianOccupation)
+        val tvGuardianBirthdate = view.findViewById<TextView>(R.id.tvProfileGuardianBirthdate)
+        val layoutPosition = view.findViewById<LinearLayout>(R.id.layoutPosition)
         val layoutPhone = view.findViewById<LinearLayout>(R.id.layoutPhone)
+        val cardBeneficiaryDetails = view.findViewById<MaterialCardView>(R.id.cardBeneficiaryDetails)
+        val cardGuardianDetails = view.findViewById<MaterialCardView>(R.id.cardGuardianDetails)
         val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseProfile)
         val btnChangePhoto = view.findViewById<MaterialCardView>(R.id.btnChangePhoto)
+        val btnEditProfile = view.findViewById<MaterialButton>(R.id.btnEditProfile)
 
         val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
         val userId = prefs.getString("USER_PH", "") ?: ""
         val userRole = prefs.getString("USER_ROLE", "user") ?: "user"
         val userName = prefs.getString("USER_NAME", "User") ?: "User"
+        val isStudent = userRole.equals("beneficiary", ignoreCase = true) || userRole.equals("student", ignoreCase = true)
 
-        // Initialize Cloudinary
         CloudinaryHelper.init(requireContext())
-
-        // Load existing profile photo (local first, then Cloudinary)
-        val localBitmap = loadProfileBitmap(requireContext())
-        if (localBitmap != null) {
-            ivProfileAvatar.setImageBitmap(localBitmap)
-        } else {
-            // Try loading from Cloudinary URL saved in prefs or Firestore
-            val savedUrl = CloudinaryHelper.getSavedProfileUrl(requireContext())
-            if (!savedUrl.isNullOrEmpty()) {
-                CloudinaryHelper.downloadProfileImage(requireContext(), savedUrl,
-                    onSuccess = { bitmap ->
-                        if (isAdded) ivProfileAvatar.setImageBitmap(bitmap)
-                    },
-                    onError = { /* ignore, use placeholder */ }
-                )
-            }
-        }
+        loadAvatar()
 
         tvName.text = userName.ifEmpty { userId }
-        tvId.text = userId
         tvRole.text = userRole.replaceFirstChar { it.uppercase() }
+        tvId.text = userId
+        tvStatus.text = "Not set"
+        tvFullName.text = userName.ifEmpty { "Not set" }
+        tvBirthdate.text = "Not set"
+        tvSchoolName.text = "Not set"
+        tvSchoolAddress.text = "Not set"
+        tvGrade.text = "Not set"
+        tvGuardianName.text = "Not set"
+        tvEmail.text = "Not set"
+        tvPhone.text = "Not set"
+        tvGuardianAddress.text = "Not set"
+        tvGuardianOccupation.text = "Not set"
+        tvGuardianBirthdate.text = "Not set"
+        tvPosition.text = "Not set"
 
-        // Photo change button
+        cardBeneficiaryDetails.visibility = if (isStudent) View.VISIBLE else View.GONE
+        cardGuardianDetails.visibility = if (isStudent) View.VISIBLE else View.GONE
+        layoutPosition.visibility = if (isStudent) View.GONE else View.VISIBLE
+        layoutPhone.visibility = View.VISIBLE
+
         btnChangePhoto.setOnClickListener {
             showPhotoPickerDialog()
         }
 
-        // Fetch profile from Firestore
         db.collection("users").document(userId).get()
             .addOnSuccessListener { doc ->
-                if (!isAdded) return@addOnSuccessListener
-                if (doc.exists()) {
-                    val first = doc.getString("FirstName") ?: doc.getString("firstName") ?: ""
-                    val last = doc.getString("LastName") ?: doc.getString("lastName") ?: ""
-                    val full = "$first $last".trim()
-                    val email = doc.getString("email") ?: doc.getString("guardianEmail") ?: "—"
-                    val status = doc.getString("status") ?: "active"
-                    val phone = doc.getString("phone") ?: doc.getString("guardianMobile") ?: doc.getString("phoneNumber") ?: ""
+                if (!isAdded || !doc.exists()) return@addOnSuccessListener
 
-                    tvName.text = full.ifEmpty { userId }
-                    tvFullName.text = full.ifEmpty { "—" }
-                    tvEmail.text = email
-                    tvStatus.text = status.replaceFirstChar { it.uppercase() }
-                    if (status.lowercase() in listOf("active", "approved")) {
-                        tvStatus.setTextColor(resources.getColor(R.color.green_500, null))
-                    } else {
-                        tvStatus.setTextColor(resources.getColor(R.color.orange_500, null))
-                    }
-                    if (phone.isNotEmpty()) {
-                        tvPhone.text = phone
-                        layoutPhone.visibility = View.VISIBLE
-                    } else {
-                        layoutPhone.visibility = View.GONE
-                    }
-                    prefs.edit().putString("USER_NAME", full.ifEmpty { userName }).apply()
+                val first = valueOrBlank(doc.getString("FirstName"), doc.getString("firstName"))
+                val last = valueOrBlank(doc.getString("LastName"), doc.getString("lastName"))
+                val fullName = listOf(first, last).filter { it.isNotBlank() }.joinToString(" ").ifBlank { userName.ifEmpty { userId } }
+                val resolvedRole = valueOrBlank(doc.getString("role"), userRole).ifBlank { userRole }
+                val resolvedStatus = valueOrBlank(doc.getString("status"), "active").ifBlank { "active" }
+                val email = valueOrBlank(doc.getString("email"), doc.getString("guardianEmail"), doc.getString("guardEmail"))
+                val phone = valueOrBlank(doc.getString("phone"), doc.getString("guardianMobile"), doc.getString("guardMobile"), doc.getString("phoneNumber"))
+                val birthdate = valueOrBlank(doc.getString("birthdate"), doc.getString("Birthdate"))
+                val schoolName = valueOrBlank(doc.getString("schoolName"), doc.getString("SchoolName"))
+                val schoolAddress = valueOrBlank(doc.getString("schoolAddress"), doc.getString("SchoolAddress"))
+                val grade = valueOrBlank(doc.getString("grade"), doc.getString("Grade"))
+                val guardFirst = valueOrBlank(doc.getString("guardFirstName"), doc.getString("GuardianFirstName"))
+                val guardLast = valueOrBlank(doc.getString("guardLastName"), doc.getString("GuardianLastName"))
+                val guardianName = listOf(guardFirst, guardLast).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Not set" }
+                val guardianAddress = valueOrBlank(doc.getString("guardAddress"), doc.getString("guardianAddress"))
+                val guardianOccupation = valueOrBlank(doc.getString("guardOccupation"), doc.getString("guardianOccupation"))
+                val guardianBirthdate = valueOrBlank(doc.getString("guardBirthdate"), doc.getString("guardianBirthdate"))
+                val position = valueOrBlank(doc.getString("position"), doc.getString("Position"))
 
-                    // Load profile image from Cloudinary if available and no local photo
-                    val profileUrl = doc.getString("profileImageUrl") ?: ""
-                    if (profileUrl.isNotEmpty()) {
-                        prefs.edit().putString("PROFILE_IMAGE_URL_$userId", profileUrl).apply()
-                        // If no local image, download from Cloudinary
-                        val localFile = getProfileImageFile(requireContext())
-                        if (!localFile.exists()) {
-                            CloudinaryHelper.downloadProfileImage(requireContext(), profileUrl,
-                                onSuccess = { bitmap ->
-                                    if (isAdded) ivProfileAvatar.setImageBitmap(bitmap)
-                                },
-                                onError = { /* ignore */ }
-                            )
-                        }
+                tvName.text = fullName
+                tvRole.text = resolvedRole.replaceFirstChar { it.uppercase() }
+                tvId.text = userId.ifBlank { "Not set" }
+                tvStatus.text = resolvedStatus.replaceFirstChar { it.uppercase() }
+                tvFullName.text = fullName
+                tvBirthdate.text = birthdate.ifBlank { "Not set" }
+                tvSchoolName.text = schoolName.ifBlank { "Not set" }
+                tvSchoolAddress.text = schoolAddress.ifBlank { "Not set" }
+                tvGrade.text = grade.ifBlank { "Not set" }
+                tvGuardianName.text = guardianName
+                tvEmail.text = email.ifBlank { "Not set" }
+                tvPhone.text = phone.ifBlank { "Not set" }
+                tvGuardianAddress.text = guardianAddress.ifBlank { "Not set" }
+                tvGuardianOccupation.text = guardianOccupation.ifBlank { "Not set" }
+                tvGuardianBirthdate.text = guardianBirthdate.ifBlank { "Not set" }
+                tvPosition.text = position.ifBlank { "Not set" }
+
+                layoutPhone.visibility = View.VISIBLE
+                layoutPosition.visibility = if (isStudent) View.GONE else View.VISIBLE
+
+                if (resolvedStatus.lowercase() in listOf("active", "approved")) {
+                    tvStatus.setTextColor(resources.getColor(R.color.green_500, null))
+                } else {
+                    tvStatus.setTextColor(resources.getColor(R.color.orange_500, null))
+                }
+
+                prefs.edit().putString("USER_NAME", fullName).apply()
+
+                val profileUrl = doc.getString("profileImageUrl") ?: ""
+                if (profileUrl.isNotEmpty()) {
+                    prefs.edit().putString("PROFILE_IMAGE_URL_$userId", profileUrl).apply()
+                    val localFile = getProfileImageFile(requireContext())
+                    if (!localFile.exists()) {
+                        CloudinaryHelper.downloadProfileImage(
+                            requireContext(),
+                            profileUrl,
+                            onSuccess = { bitmap -> if (isAdded) ivProfileAvatar.setImageBitmap(bitmap) },
+                            onError = { }
+                        )
                     }
                 }
             }
 
-        val btnEditProfile = view.findViewById<MaterialButton>(R.id.btnEditProfile)
-
-        // Show Edit Profile button for admin and staff only
         if (userRole.lowercase() in listOf("admin", "staff")) {
             btnEditProfile.visibility = View.VISIBLE
         }
@@ -207,7 +237,6 @@ class ProfileDialog : DialogFragment() {
         }
 
         btnClose.setOnClickListener {
-            // Notify the activity to refresh the header profile image
             (activity as? DashboardActivity)?.loadHeaderProfileImage()
             (activity as? StaffDashboardActivity)?.loadHeaderProfileImage()
             (activity as? AdminDashboardActivity)?.loadHeaderProfileImage()
@@ -219,6 +248,28 @@ class ProfileDialog : DialogFragment() {
         return dlg
     }
 
+    private fun loadAvatar() {
+        val localBitmap = loadProfileBitmap(requireContext())
+        if (localBitmap != null) {
+            ivProfileAvatar.setImageBitmap(localBitmap)
+            return
+        }
+
+        val savedUrl = CloudinaryHelper.getSavedProfileUrl(requireContext())
+        if (!savedUrl.isNullOrEmpty()) {
+            CloudinaryHelper.downloadProfileImage(
+                requireContext(),
+                savedUrl,
+                onSuccess = { bitmap -> if (isAdded) ivProfileAvatar.setImageBitmap(bitmap) },
+                onError = { }
+            )
+        }
+    }
+
+    private fun valueOrBlank(vararg values: String?): String {
+        return values.firstOrNull { !it.isNullOrBlank() }?.trim().orEmpty()
+    }
+
     private fun showEditProfileDialog(
         userId: String,
         tvName: TextView,
@@ -227,103 +278,82 @@ class ProfileDialog : DialogFragment() {
         tvPhone: TextView,
         layoutPhone: LinearLayout
     ) {
-        val layout = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(60, 40, 60, 20)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_profile, null)
+        val etFirstName = dialogView.findViewById<TextInputEditText>(R.id.etEditProfileFirstName)
+        val etLastName = dialogView.findViewById<TextInputEditText>(R.id.etEditProfileLastName)
+        val etEmail = dialogView.findViewById<TextInputEditText>(R.id.etEditProfileEmail)
+        val etPhoneEdit = dialogView.findViewById<TextInputEditText>(R.id.etEditProfilePhone)
+        val btnCancel = dialogView.findViewById<MaterialButton>(R.id.btnCancelEditProfile)
+        val btnSave = dialogView.findViewById<MaterialButton>(R.id.btnSaveEditProfile)
+
+        val fullNameParts = tvFullName.text.toString().takeIf { it != "Not set" }.orEmpty().trim().split(" ")
+        etFirstName.setText(fullNameParts.firstOrNull().orEmpty())
+        etLastName.setText(fullNameParts.drop(1).joinToString(" "))
+        etEmail.setText(tvEmail.text.toString().takeIf { it != "Not set" }.orEmpty())
+        etPhoneEdit.setText(tvPhone.text.toString().takeIf { it != "Not set" }.orEmpty())
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
         }
 
-        val etFirstName = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
-            hint = "First Name"
-            setText(tvFullName.text.toString().split(" ").firstOrNull() ?: "")
-        }
-        layout.addView(etFirstName)
+        btnSave.setOnClickListener {
+            val firstName = etFirstName.text.toString().trim()
+            val lastName = etLastName.text.toString().trim()
+            val email = etEmail.text.toString().trim()
+            val phone = etPhoneEdit.text.toString().trim()
 
-        val etLastName = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
-            hint = "Last Name"
-            val parts = tvFullName.text.toString().split(" ")
-            setText(if (parts.size > 1) parts.subList(1, parts.size).joinToString(" ") else "")
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.topMargin = 16
-            layoutParams = params
-        }
-        layout.addView(etLastName)
-
-        val etEmail = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
-            hint = "Email"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            val currentEmail = tvEmail.text.toString()
-            setText(if (currentEmail == "—") "" else currentEmail)
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.topMargin = 16
-            layoutParams = params
-        }
-        layout.addView(etEmail)
-
-        val etPhoneEdit = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
-            hint = "Phone Number"
-            inputType = android.text.InputType.TYPE_CLASS_PHONE
-            val currentPhone = tvPhone.text.toString()
-            setText(if (currentPhone == "—") "" else currentPhone)
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.topMargin = 16
-            layoutParams = params
-        }
-        layout.addView(etPhoneEdit)
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Edit Profile")
-            .setView(layout)
-            .setPositiveButton("Save") { _, _ ->
-                val firstName = etFirstName.text.toString().trim()
-                val lastName = etLastName.text.toString().trim()
-                val email = etEmail.text.toString().trim()
-                val phone = etPhoneEdit.text.toString().trim()
-
-                if (firstName.isEmpty()) {
-                    android.widget.Toast.makeText(requireContext(), "First Name is required", android.widget.Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-
-                val updates = mutableMapOf<String, Any>(
-                    "FirstName" to firstName,
-                    "LastName" to lastName
-                )
-                if (email.isNotEmpty()) updates["email"] = email
-                if (phone.isNotEmpty()) updates["phone"] = phone
-
-                db.collection("users").document(userId).update(updates)
-                    .addOnSuccessListener {
-                        if (!isAdded) return@addOnSuccessListener
-                        val fullName = "$firstName $lastName".trim()
-                        tvName.text = fullName
-                        tvFullName.text = fullName
-                        tvEmail.text = email.ifEmpty { "—" }
-                        if (phone.isNotEmpty()) {
-                            tvPhone.text = phone
-                            layoutPhone.visibility = View.VISIBLE
-                        }
-                        // Update shared prefs
-                        val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
-                        prefs.edit().putString("USER_NAME", fullName).apply()
-                        android.widget.Toast.makeText(requireContext(), "Profile updated", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener { e ->
-                        if (isAdded) {
-                            android.widget.Toast.makeText(requireContext(), "Failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
+            if (firstName.isEmpty()) {
+                etFirstName.error = "First Name is required"
+                etFirstName.requestFocus()
+                return@setOnClickListener
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+
+            btnSave.isEnabled = false
+            btnSave.text = "Saving..."
+
+            val updates = mutableMapOf<String, Any>(
+                "FirstName" to firstName,
+                "LastName" to lastName
+            )
+            if (email.isNotEmpty()) updates["email"] = email else updates["email"] = ""
+            if (phone.isNotEmpty()) updates["phone"] = phone else updates["phone"] = ""
+
+            db.collection("users").document(userId).update(updates)
+                .addOnSuccessListener {
+                    if (!isAdded) return@addOnSuccessListener
+                    val fullName = "$firstName $lastName".trim()
+                    tvName.text = fullName
+                    tvFullName.text = fullName
+                    tvEmail.text = email.ifEmpty { "Not set" }
+                    tvPhone.text = phone.ifEmpty { "Not set" }
+                    layoutPhone.visibility = View.VISIBLE
+                    requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("USER_NAME", fullName)
+                        .apply()
+                    Toast.makeText(requireContext(), "Profile updated", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+                .addOnFailureListener { e ->
+                    btnSave.isEnabled = true
+                    btnSave.text = "Save Changes"
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 
     private fun showPhotoPickerDialog() {
@@ -358,25 +388,20 @@ class ProfileDialog : DialogFragment() {
             .setTitle("Remove Profile Photo")
             .setMessage("Are you sure you want to remove your profile photo?")
             .setPositiveButton("Remove") { _, _ ->
-                // Delete local file
                 val localFile = getProfileImageFile(requireContext())
                 if (localFile.exists()) localFile.delete()
 
-                // Clear saved URL
                 val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
                 val userId = prefs.getString("USER_PH", "unknown") ?: "unknown"
                 prefs.edit().remove("PROFILE_IMAGE_URL_$userId").apply()
 
-                // Reset avatar to placeholder
                 ivProfileAvatar.setImageResource(R.drawable.ic_profile_placeholder)
 
-                // Remove URL from Firestore
                 if (userId.isNotEmpty() && userId != "unknown") {
                     db.collection("users").document(userId)
                         .update("profileImageUrl", "")
                 }
 
-                // Refresh header in parent activity
                 (activity as? DashboardActivity)?.loadHeaderProfileImage()
                 (activity as? StaffDashboardActivity)?.loadHeaderProfileImage()
                 (activity as? AdminDashboardActivity)?.loadHeaderProfileImage()
@@ -436,14 +461,12 @@ class ProfileDialog : DialogFragment() {
             inputStream?.close()
 
             if (bitmap != null) {
-                // Save to internal storage
                 val destFile = getProfileImageFile(requireContext())
                 val fos = FileOutputStream(destFile)
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos)
                 fos.flush()
                 fos.close()
 
-                // Update avatar
                 ivProfileAvatar.setImageBitmap(bitmap)
 
                 val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
@@ -451,14 +474,13 @@ class ProfileDialog : DialogFragment() {
 
                 Toast.makeText(requireContext(), "Uploading photo...", Toast.LENGTH_SHORT).show()
 
-                // Upload to Cloudinary
                 CloudinaryHelper.uploadProfileImage(
                     context = requireContext(),
                     bitmap = bitmap,
                     userId = userId,
                     onSuccess = { secureUrl ->
                         if (isAdded) {
-                            Toast.makeText(requireContext(), "Profile photo saved to cloud!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "Already Saved!", Toast.LENGTH_SHORT).show()
                         }
                         db.collection("users").document(userId)
                             .update("profileImageUrl", secureUrl)

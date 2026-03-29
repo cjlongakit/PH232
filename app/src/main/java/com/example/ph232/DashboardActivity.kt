@@ -55,6 +55,28 @@ class DashboardActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_dashboard)
 
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.dashboardRoot)) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val header = view.findViewById<View>(R.id.headerContent)
+            val bottomNav = view.findViewById<View>(R.id.bottomNavigation)
+            val fab = view.findViewById<View>(R.id.fabQrScanner)
+
+            header.setPadding(
+                header.paddingLeft,
+                systemBars.top + 10,
+                header.paddingRight,
+                header.paddingBottom
+            )
+            bottomNav.setPadding(
+                bottomNav.paddingLeft,
+                bottomNav.paddingTop,
+                bottomNav.paddingRight,
+                systemBars.bottom
+            )
+            fab.translationY = (-systemBars.bottom / 2f)
+            insets
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.fragmentContainer)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, 0, systemBars.right, 0)

@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
@@ -99,22 +100,25 @@ class RegisterActivity : AppCompatActivity() {
             val username = etRegUsername.text.toString().trim()
             val firstName = etBenFirstName.text.toString().trim()
             val lastName = etBenLastName.text.toString().trim()
+            val fullName = "$firstName $lastName".trim()
 
             progressManager.show("Creating account...")
             btnSubmit.isEnabled = false
 
-            // Check if student already exists in students collection
-            db.collection("students").whereEqualTo("name", "$firstName $lastName").get()
+            db.collection("users").document(username).get()
                 .addOnSuccessListener { documents ->
-                    if (!documents.isEmpty) {
+                    if (documents.exists()) {
                         progressManager.dismiss()
                         btnSubmit.isEnabled = true
-                        Toast.makeText(this, "A student with this name already exists", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Student ID is already in use", Toast.LENGTH_LONG).show()
                     } else {
-                        // Create student data for students collection
+                        val approvalStatus = "pending"
+                        val assignedCaseworkerId: String? = null
+                        val studentId = etBenId.text.toString().trim()
+
                         val studentData = hashMapOf(
-                            "benId" to etBenId.text.toString().trim(),
-                            "name" to "$firstName $lastName",
+                            "benId" to studentId,
+                            "name" to fullName,
                             "firstName" to firstName,
                             "lastName" to lastName,
                             "birthday" to etBenBirthdate.text.toString().trim(),
@@ -132,16 +136,50 @@ class RegisterActivity : AppCompatActivity() {
 
                             "username" to username,
                             "password" to password,
-                            "role" to "beneficiary",
-                            "status" to "active",
-                            "createdAt" to System.currentTimeMillis()
+                            "role" to "student",
+                            "status" to approvalStatus,
+                            "approvalStatus" to approvalStatus,
+                            "assignedCaseworkerId" to assignedCaseworkerId,
+                            "assignedCaseworkerName" to "",
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
                         )
 
-                        // Save directly to students collection
-                        db.collection("students").document(username).set(studentData)
+                        val userData = hashMapOf(
+                            "id" to username,
+                            "benId" to studentId,
+                            "name" to fullName,
+                            "FirstName" to firstName,
+                            "LastName" to lastName,
+                            "Birthdate" to etBenBirthdate.text.toString().trim(),
+                            "SchoolName" to etBenSchoolName.text.toString().trim(),
+                            "SchoolAddress" to etBenSchoolAddress.text.toString().trim(),
+                            "Grade" to etBenGrade.text.toString().trim(),
+                            "guardFirstName" to etGuardFirstName.text.toString().trim(),
+                            "guardLastName" to etGuardLastName.text.toString().trim(),
+                            "guardMobile" to etGuardMobile.text.toString().trim(),
+                            "guardAddress" to etGuardAddress.text.toString().trim(),
+                            "guardOccupation" to etGuardOccupation.text.toString().trim(),
+                            "guardBirthdate" to etGuardBirthdate.text.toString().trim(),
+                            "guardEmail" to etGuardEmail.text.toString().trim(),
+                            "email" to etGuardEmail.text.toString().trim(),
+                            "password" to password,
+                            "role" to "student",
+                            "status" to approvalStatus,
+                            "approvalStatus" to approvalStatus,
+                            "assignedCaseworkerId" to assignedCaseworkerId,
+                            "assignedCaseworkerName" to "",
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+
+                        val batch = db.batch()
+                        batch.set(db.collection("users").document(username), userData)
+                        batch.set(db.collection("students").document(username), studentData)
+                        batch.commit()
                             .addOnSuccessListener {
                                 progressManager.dismiss()
-                                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Account created. Pending approval.", Toast.LENGTH_SHORT).show()
                                 val prefs = getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
                                 prefs.edit().putBoolean("SHOW_APPROVAL_DIALOG", true).apply()
                                 finish()

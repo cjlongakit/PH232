@@ -5,35 +5,36 @@
     android:layout_height="match_parent"
     android:background="@color/gray_light">
 
-    <!-- Date Filter -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardDateFilter"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
         app:cardBackgroundColor="@color/card_background"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="14dp"
         app:cardElevation="2dp"
-        app:strokeWidth="1dp"
-        app:strokeColor="@color/gray_200"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:strokeColor="@color/gray_200"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="12dp"
-            android:gravity="center_vertical">
+            android:padding="12dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPrevDate"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="◀"
-                android:textColor="@color/black" />
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                app:icon="@drawable/ic_arrow_left"
+                app:iconTint="@color/purple_primary" />
 
             <TextView
                 android:id="@+id/tvSelectedDate"
@@ -48,11 +49,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextDate"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="▶"
-                android:textColor="@color/black" />
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                app:icon="@drawable/ic_arrow_right"
+                app:iconTint="@color/purple_primary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDate"
@@ -66,21 +67,21 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Stats Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardStats"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
         app:cardBackgroundColor="@color/card_background"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="14dp"
         app:cardElevation="2dp"
-        app:strokeWidth="1dp"
-        app:strokeColor="@color/gray_200"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardDateFilter">
+        app:layout_constraintTop_toBottomOf="@id/cardDateFilter"
+        app:strokeColor="@color/gray_200"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -101,7 +102,7 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="@color/purple_primary"
-                    android:textSize="28sp"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -131,7 +132,7 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="@color/green_500"
-                    android:textSize="28sp"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -161,7 +162,7 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="@color/orange_500"
-                    android:textSize="28sp"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -191,7 +192,7 @@
                     android:layout_height="wrap_content"
                     android:text="0"
                     android:textColor="@color/red_pending"
-                    android:textSize="28sp"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -207,16 +208,16 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Active QR Session Info -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardActiveSession"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
         android:visibility="gone"
         app:cardBackgroundColor="@color/purple_soft"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="14dp"
         app:cardElevation="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -225,24 +226,45 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="12dp"
-            android:gravity="center_vertical">
+            android:padding="14dp">
 
             <View
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:background="@color/green_500" />
 
-            <TextView
-                android:id="@+id/tvActiveSessionInfo"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="Active QR Session"
-                android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvActiveSessionTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Attendance QR is active"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvActiveSessionMeta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Expires --"
+                    android:textColor="@color/gray_text"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDeactivateSession"
@@ -257,20 +279,19 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Attendance List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvAttendanceLogs"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cardActiveSession" />
 
-    <!-- Empty State -->
     <LinearLayout
         android:id="@+id/layoutEmpty"
         android:layout_width="wrap_content"
@@ -300,7 +321,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Students who scan the QR code will appear here"
+            android:layout_marginTop="4dp"
+            android:text="Students who scan the QR code appear here"
             android:textColor="@color/gray_400"
             android:textSize="12sp" />
 
@@ -311,11 +333,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:src="@drawable/ic_qr_code"
         android:contentDescription="Generate QR Code"
+        android:src="@drawable/ic_qr_code"
         app:backgroundTint="@color/purple_primary"
-        app:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

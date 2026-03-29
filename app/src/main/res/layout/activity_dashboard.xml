@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/dashboardRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/gray_light"
@@ -15,8 +16,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingHorizontal="20dp"
-        android:paddingTop="48dp"
-        android:paddingBottom="16dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="14dp"
         android:background="@color/white"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -61,7 +62,7 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="25dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="1dp"
             app:strokeColor="@color/gray_200">
 
@@ -89,7 +90,8 @@
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#E5E7EB"
+        android:background="@color/white"
+        android:elevation="0dp"
         app:itemActiveIndicatorStyle="@null"
         app:itemIconTint="@color/bottom_nav_color"
         app:itemTextColor="@color/bottom_nav_color"

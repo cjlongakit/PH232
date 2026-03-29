@@ -5,25 +5,30 @@ import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.Editable
+import android.text.Selection
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
-import android.widget.RadioGroup
-import android.widget.Toast
+import android.widget.RadioButton
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class AddLetterDialog : DialogFragment() {
 
     private lateinit var etLetterTitle: TextInputEditText
     private lateinit var etDescription: TextInputEditText
     private lateinit var etDeadline: TextInputEditText
-    private lateinit var rgAssignTo: RadioGroup
+    private lateinit var rbAllStudents: RadioButton
+    private lateinit var rbSpecificStudent: RadioButton
     private lateinit var tilStudentId: TextInputLayout
     private lateinit var etStudentId: TextInputEditText
     private lateinit var btnCancel: MaterialButton
@@ -31,7 +36,6 @@ class AddLetterDialog : DialogFragment() {
 
     private lateinit var repository: FirebaseRepository
     private var onLetterAddedListener: ((Boolean, String) -> Unit)? = null
-
     private val calendar = Calendar.getInstance()
 
     companion object {
@@ -64,40 +68,36 @@ class AddLetterDialog : DialogFragment() {
 
         repository = FirebaseRepository.getInstance()
 
-        // Initialize views
         etLetterTitle = view.findViewById(R.id.etLetterTitle)
         etDescription = view.findViewById(R.id.etDescription)
         etDeadline = view.findViewById(R.id.etDeadline)
-        rgAssignTo = view.findViewById(R.id.rgAssignTo)
+        rbAllStudents = view.findViewById(R.id.rbAllStudents)
+        rbSpecificStudent = view.findViewById(R.id.rbSpecificStudent)
         tilStudentId = view.findViewById(R.id.tilStudentId)
         etStudentId = view.findViewById(R.id.etStudentId)
         btnCancel = view.findViewById(R.id.btnCancel)
         btnAddLetter = view.findViewById(R.id.btnAddLetter)
 
-        // Date picker for deadline
         etDeadline.setOnClickListener {
             showDatePicker()
         }
 
-        // Toggle student ID field visibility based on radio selection
-        rgAssignTo.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.rbAllStudents -> {
-                    tilStudentId.visibility = View.GONE
-                    etStudentId.text?.clear()
-                }
-                R.id.rbSpecificStudent -> {
-                    tilStudentId.visibility = View.VISIBLE
-                }
-            }
+        rbAllStudents.setOnClickListener {
+            tilStudentId.visibility = View.GONE
+            etStudentId.text?.clear()
         }
 
-        // Cancel button
+        rbSpecificStudent.setOnClickListener {
+            tilStudentId.visibility = View.VISIBLE
+            setupPrefixIfNeeded()
+        }
+
+        setupPrefixIfNeeded()
+
         btnCancel.setOnClickListener {
             dismiss()
         }
 
-        // Add Letter button
         btnAddLetter.setOnClickListener {
             addLetter()
         }
@@ -109,6 +109,33 @@ class AddLetterDialog : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    private fun setupPrefixIfNeeded() {
+        if (etStudentId.tag == "prefix_bound") {
+            if (!etStudentId.text.isNullOrEmpty() || tilStudentId.visibility == View.VISIBLE) {
+                ensurePrefix()
+            }
+            return
+        }
+
+        etStudentId.tag = "prefix_bound"
+        ensurePrefix()
+        etStudentId.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+            override fun afterTextChanged(s: Editable?) {
+                if (tilStudentId.visibility == View.VISIBLE && !s.toString().startsWith("PH323-")) {
+                    ensurePrefix()
+                }
+            }
+        })
+    }
+
+    private fun ensurePrefix() {
+        etStudentId.setText("PH323-")
+        Selection.setSelection(etStudentId.text, etStudentId.text?.length ?: 0)
     }
 
     private fun showDatePicker() {
@@ -125,7 +152,6 @@ class AddLetterDialog : DialogFragment() {
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         )
-        // Set minimum date to today
         datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
         datePickerDialog.show()
     }
@@ -134,10 +160,9 @@ class AddLetterDialog : DialogFragment() {
         val title = etLetterTitle.text.toString().trim()
         val description = etDescription.text.toString().trim()
         val deadline = etDeadline.text.toString().trim()
-        val isForAllStudents = rgAssignTo.checkedRadioButtonId == R.id.rbAllStudents
+        val isForAllStudents = rbAllStudents.isChecked
         val studentId = if (!isForAllStudents) etStudentId.text.toString().trim() else ""
 
-        // Validation
         if (title.isEmpty()) {
             etLetterTitle.error = "Letter title is required"
             return
@@ -148,16 +173,12 @@ class AddLetterDialog : DialogFragment() {
             return
         }
 
-        if (!isForAllStudents && studentId.isEmpty()) {
+        if (!isForAllStudents && (studentId.isEmpty() || studentId == "PH323-")) {
             etStudentId.error = "Student ID is required"
             return
         }
 
-
-        // Get current date as created date
         val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
-        // Create letter object
         val letter = Letter(
             title = title,
             name = title,
@@ -166,21 +187,19 @@ class AddLetterDialog : DialogFragment() {
             status = "pending",
             dateCreated = currentDate,
             isCompleted = false,
-            studentId = studentId, // Empty for all students
-            studentName = "", // Will be populated when specific student is selected
+            studentId = studentId,
+            studentName = "",
             assignedBy = "admin",
             turnedInDate = "",
             notes = ""
         )
 
-        // Disable button while saving
         btnAddLetter.isEnabled = false
         btnAddLetter.text = "Adding..."
 
-        // Save to Firestore using repository
         repository.addLetter(
             letter = letter,
-            onSuccess = { docId ->
+            onSuccess = {
                 val message = if (isForAllStudents) {
                     "Letter '$title' added for all students!"
                 } else {
@@ -197,4 +216,3 @@ class AddLetterDialog : DialogFragment() {
         )
     }
 }
-

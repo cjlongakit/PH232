@@ -10,12 +10,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.TextView
-import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.textfield.TextInputEditText
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
+import java.util.UUID
 
 class AddEventCalendarDialog : DialogFragment() {
 
@@ -24,22 +27,39 @@ class AddEventCalendarDialog : DialogFragment() {
     private lateinit var etEventName: TextInputEditText
     private lateinit var etEventDate: TextInputEditText
     private lateinit var etDescription: TextInputEditText
+    private lateinit var inputEventDate: TextInputLayout
+    private lateinit var btnCancel: MaterialButton
     private lateinit var btnAddEvent: MaterialButton
 
     private lateinit var repository: FirebaseRepository
     private var selectedDate: String = ""
     private var selectedDay: Int = 0
+    private var eventId: String = ""
+    private var initialEventName: String = ""
+    private var initialDescription: String = ""
     private var onEventAddedListener: ((Boolean, String) -> Unit)? = null
 
     companion object {
         private const val ARG_DATE = "arg_date"
         private const val ARG_DAY = "arg_day"
+        private const val ARG_EVENT_ID = "arg_event_id"
+        private const val ARG_EVENT_NAME = "arg_event_name"
+        private const val ARG_DESCRIPTION = "arg_description"
 
-        fun newInstance(date: String, day: Int): AddEventCalendarDialog {
+        fun newInstance(
+            date: String,
+            day: Int,
+            eventId: String = "",
+            eventName: String = "",
+            description: String = ""
+        ): AddEventCalendarDialog {
             return AddEventCalendarDialog().apply {
                 arguments = Bundle().apply {
                     putString(ARG_DATE, date)
                     putInt(ARG_DAY, day)
+                    putString(ARG_EVENT_ID, eventId)
+                    putString(ARG_EVENT_NAME, eventName)
+                    putString(ARG_DESCRIPTION, description)
                 }
             }
         }
@@ -69,32 +89,43 @@ class AddEventCalendarDialog : DialogFragment() {
 
         repository = FirebaseRepository.getInstance()
 
-        // Get arguments
         selectedDate = arguments?.getString(ARG_DATE) ?: ""
         selectedDay = arguments?.getInt(ARG_DAY) ?: 0
+        eventId = arguments?.getString(ARG_EVENT_ID) ?: ""
+        initialEventName = arguments?.getString(ARG_EVENT_NAME) ?: ""
+        initialDescription = arguments?.getString(ARG_DESCRIPTION) ?: ""
 
-        // Initialize views
         tvDialogTitle = view.findViewById(R.id.tvDialogTitle)
         tvSelectedDate = view.findViewById(R.id.tvSelectedDate)
         etEventName = view.findViewById(R.id.etEventName)
         etEventDate = view.findViewById(R.id.etEventDate)
         etDescription = view.findViewById(R.id.etDescription)
+        inputEventDate = view.findViewById(R.id.inputEventDate)
+        btnCancel = view.findViewById(R.id.btnCancel)
         btnAddEvent = view.findViewById(R.id.btnAddEvent)
 
-        // Set initial date
-        if (selectedDate.isNotEmpty()) {
-            etEventDate.setText(selectedDate)
-            tvSelectedDate.text = "No events this day."
-        }
+        val isEditMode = eventId.isNotBlank()
+        tvDialogTitle.text = if (isEditMode) "Edit Event" else "Add Event"
+        tvSelectedDate.text = if (isEditMode) "Update the selected event details." else "Create an event for the selected day."
+        btnAddEvent.text = if (isEditMode) "Save Changes" else "Add Event"
 
-        // Date picker click
+        setDisplayedDate(selectedDate)
+        etEventName.setText(initialEventName)
+        etDescription.setText(initialDescription)
+
         etEventDate.setOnClickListener {
             showDatePicker()
         }
+        inputEventDate.setEndIconOnClickListener {
+            showDatePicker()
+        }
 
-        // Add event button
+        btnCancel.setOnClickListener {
+            dismiss()
+        }
+
         btnAddEvent.setOnClickListener {
-            addEvent()
+            saveEvent(isEditMode)
         }
     }
 
@@ -109,20 +140,11 @@ class AddEventCalendarDialog : DialogFragment() {
     private fun showDatePicker() {
         val calendar = Calendar.getInstance()
 
-        // Parse existing date if available
         if (selectedDate.isNotEmpty()) {
-            try {
-                val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val date = format.parse(selectedDate)
-                if (date != null) {
-                    calendar.time = date
-                }
-            } catch (e: Exception) {
-                // Use current date
-            }
+            parseDate(selectedDate)?.let { calendar.time = it }
         }
 
-        val datePickerDialog = DatePickerDialog(
+        DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
                 calendar.set(Calendar.YEAR, year)
@@ -137,16 +159,14 @@ class AddEventCalendarDialog : DialogFragment() {
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePickerDialog.show()
+        ).show()
     }
 
-    private fun addEvent() {
+    private fun saveEvent(isEditMode: Boolean) {
         val eventName = etEventName.text.toString().trim()
-        val eventDate = etEventDate.text.toString().trim()
+        val eventDate = selectedDate.ifBlank { normalizeToStorageDate(etEventDate.text.toString().trim()) }
         val description = etDescription.text.toString().trim()
 
-        // Validation
         if (eventName.isEmpty()) {
             etEventName.error = "Event name is required"
             return
@@ -157,10 +177,33 @@ class AddEventCalendarDialog : DialogFragment() {
             return
         }
 
-        // Generate QR code for the event
-        val qrCode = "EVENT_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}"
+        btnAddEvent.isEnabled = false
+        btnAddEvent.text = if (isEditMode) "Saving..." else "Adding..."
 
-        // Create event object
+        if (isEditMode) {
+            repository.updateEvent(
+                eventId = eventId,
+                updates = mapOf(
+                    "name" to eventName,
+                    "title" to eventName,
+                    "description" to description,
+                    "date" to eventDate,
+                    "day" to selectedDay
+                ),
+                onSuccess = {
+                    onEventAddedListener?.invoke(true, "Event updated successfully!")
+                    dismiss()
+                },
+                onFailure = { e ->
+                    btnAddEvent.isEnabled = true
+                    btnAddEvent.text = "Save Changes"
+                    onEventAddedListener?.invoke(false, "Error: ${e.message}")
+                }
+            )
+            return
+        }
+
+        val qrCode = "EVENT_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}"
         val event = Event(
             name = eventName,
             title = eventName,
@@ -174,14 +217,9 @@ class AddEventCalendarDialog : DialogFragment() {
             createdBy = "admin"
         )
 
-        // Disable button while saving
-        btnAddEvent.isEnabled = false
-        btnAddEvent.text = "Adding..."
-
-        // Save to Firestore
         repository.addEvent(
             event = event,
-            onSuccess = { eventId ->
+            onSuccess = {
                 onEventAddedListener?.invoke(true, "Event '$eventName' added successfully!")
                 dismiss()
             },
@@ -192,5 +230,32 @@ class AddEventCalendarDialog : DialogFragment() {
             }
         )
     }
-}
 
+    private fun setDisplayedDate(rawDate: String) {
+        if (rawDate.isBlank()) {
+            inputEventDate.isVisible = true
+            return
+        }
+        selectedDate = normalizeToStorageDate(rawDate)
+        val displayFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val parsedDate = parseDate(selectedDate)
+        etEventDate.setText(parsedDate?.let { displayFormat.format(it) } ?: rawDate)
+        if (selectedDay == 0 && parsedDate != null) {
+            val calendar = Calendar.getInstance().apply { time = parsedDate }
+            selectedDay = calendar.get(Calendar.DAY_OF_MONTH)
+        }
+    }
+
+    private fun normalizeToStorageDate(rawDate: String): String {
+        val parsedDate = parseDate(rawDate) ?: return rawDate
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(parsedDate)
+    }
+
+    private fun parseDate(rawDate: String) = listOf(
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+        SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    ).firstNotNullOfOrNull { format ->
+        runCatching { format.parse(rawDate) }.getOrNull()
+    }
+}

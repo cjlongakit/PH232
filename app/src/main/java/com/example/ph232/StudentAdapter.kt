@@ -46,22 +46,23 @@ class StudentAdapter(
 
         // Set student info
         holder.tvStudentName.text = student.name.ifEmpty { "Unknown Student" }
-        holder.tvStudentId.text = "PH ${student.id}"
+        holder.tvStudentId.text = student.id.ifEmpty { "No PH ID" }
         holder.tvStudentSection.text = "Section ${student.section.ifEmpty { "N/A" }}"
-        holder.tvStudentYear.text = "Year ${student.year.ifEmpty { "N/A" }}"
+        holder.tvStudentYear.text = formatYear(student.year)
 
         // Set status
-        when (student.status.lowercase()) {
-            "active" -> {
-                holder.tvStatus.text = "Active"
+        when (student.approvalStatus.ifBlank { student.status }.lowercase()) {
+            "active", "approved" -> {
+                holder.tvStatus.text = "Approved"
                 holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.green_500))
             }
-            "inactive" -> {
-                holder.tvStatus.text = "Inactive"
+            "inactive", "pending" -> {
+                holder.tvStatus.text = "Pending"
                 holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.orange_500))
             }
             else -> {
-                holder.tvStatus.text = student.status.replaceFirstChar { it.uppercase() }
+                val rawStatus = student.approvalStatus.ifBlank { student.status }
+                holder.tvStatus.text = rawStatus.replaceFirstChar { it.uppercase() }
                 holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.gray_text))
             }
         }
@@ -113,5 +114,11 @@ class StudentAdapter(
 
     fun getFilteredCount() = filteredStudents.size
     fun getTotalCount() = students.size
+
+    private fun formatYear(year: String): String {
+        val trimmed = year.trim()
+        if (trimmed.isBlank()) return "Year N/A"
+        return if (trimmed.startsWith("Year ", ignoreCase = true)) trimmed else "Year $trimmed"
+    }
 }
 

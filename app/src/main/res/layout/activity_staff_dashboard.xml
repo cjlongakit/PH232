@@ -2,57 +2,71 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/staffDashboardRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/gray_light"
     tools:context=".StaffDashboardActivity">
 
-    <!-- Header Section -->
     <LinearLayout
         android:id="@+id/headerContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingTop="48dp"
-        android:paddingBottom="16dp"
         android:background="@color/white"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="18dp"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Logo -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="50dp"
             android:layout_height="50dp"
             app:cardCornerRadius="25dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/gray_200">
+            app:strokeColor="@color/gray_200"
+            app:strokeWidth="1dp">
 
-            <ImageView
+            <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/logoImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ph323_white_bg"
                 android:background="@color/white"
-                android:contentDescription="Logo" />
+                android:contentDescription="Logo"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ph323_white_bg" />
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Dynamic Page Title -->
-        <TextView
-            android:id="@+id/tvHeaderTitle"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:text="Dashboard"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="@color/black" />
+            android:orientation="vertical">
 
-        <!-- Profile Photo -->
+            <TextView
+                android:id="@+id/tvHeaderLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Caseworker Portal"
+                android:textColor="@color/gray_text"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvHeaderTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Dashboard"
+                android:textColor="@color/black"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/profileCard"
             android:layout_width="50dp"
@@ -62,43 +76,49 @@
             android:foreground="?attr/selectableItemBackground"
             app:cardCornerRadius="25dp"
             app:cardElevation="2dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/gray_200">
+            app:strokeColor="@color/gray_200"
+            app:strokeWidth="1dp">
 
             <ImageView
                 android:id="@+id/profileImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_profile_placeholder"
                 android:background="@color/white"
-                android:contentDescription="Profile" />
+                android:contentDescription="Profile"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_profile_placeholder" />
 
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
-    <!-- Fragment Container -->
+    <View
+        android:id="@+id/headerDivider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/gray_200"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerContent" />
+
     <FrameLayout
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/headerContent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation" />
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintTop_toBottomOf="@id/headerDivider" />
 
-    <!-- Bottom Navigation Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#E5E7EB"
+        android:background="@color/white"
         app:itemActiveIndicatorStyle="@null"
+        app:itemIconSize="20dp"
         app:itemIconTint="@color/bottom_nav_color"
         app:itemTextColor="@color/bottom_nav_color"
         app:labelVisibilityMode="labeled"
-        app:itemIconSize="20dp"
-        app:menu="@menu/staff_nav_menu"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/staff_nav_menu" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

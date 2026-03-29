@@ -1,32 +1,35 @@
 package com.example.ph232
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class AdminDashboardFragment : Fragment() {
 
     private lateinit var repository: FirebaseRepository
-    private lateinit var tvTotalLetters: TextView
-    private lateinit var tvTurnedIn: TextView
-    private lateinit var tvOnHand: TextView
-    private lateinit var tvUpcomingEvents: TextView
-    private lateinit var btnAddStudent: MaterialButton
+    private val db = FirebaseFirestore.getInstance()
+    private lateinit var tvTotalStudents: TextView
+    private lateinit var tvTotalEmployees: TextView
+    private lateinit var tvAttendanceCount: TextView
+    private lateinit var btnAddEmployee: MaterialButton
     private lateinit var btnCreateEvent: MaterialButton
-    private lateinit var btnAddLetter: MaterialButton
-    private lateinit var eventsContainer: LinearLayout
-    private lateinit var recentlyContainer: LinearLayout
+    private lateinit var btnAddStudent: MaterialButton
+    private lateinit var monitoringContainer: LinearLayout
 
-    private var lettersListener: ListenerRegistration? = null
-    private var eventsListener: ListenerRegistration? = null
+    private var studentsListener: ListenerRegistration? = null
+    private var employeesListener: ListenerRegistration? = null
     private var attendanceListener: ListenerRegistration? = null
     private var progressManager: ProgressManager? = null
     private var dataLoadedCount = 0
@@ -44,153 +47,111 @@ class AdminDashboardFragment : Fragment() {
 
         repository = FirebaseRepository.getInstance()
 
-        // Initialize views
-        tvTotalLetters = view.findViewById(R.id.tvTotalLetters)
-        tvTurnedIn = view.findViewById(R.id.tvTurnedIn)
-        tvOnHand = view.findViewById(R.id.tvOnHand)
-        tvUpcomingEvents = view.findViewById(R.id.tvUpcomingEvents)
-        btnAddStudent = view.findViewById(R.id.btnAddStudent)
+        tvTotalStudents = view.findViewById(R.id.tvTotalStudents)
+        tvTotalEmployees = view.findViewById(R.id.tvTotalEmployees)
+        tvAttendanceCount = view.findViewById(R.id.tvAttendanceCount)
+        btnAddEmployee = view.findViewById(R.id.btnAddEmployee)
         btnCreateEvent = view.findViewById(R.id.btnCreateEvent)
-        btnAddLetter = view.findViewById(R.id.btnAddLetter)
-        eventsContainer = view.findViewById(R.id.eventsContainer)
-        recentlyContainer = view.findViewById(R.id.recentlyContainer)
+        btnAddStudent = view.findViewById(R.id.btnAddStudent)
+        monitoringContainer = view.findViewById(R.id.monitoringContainer)
 
-        // Setup real-time listeners for dashboard data
         progressManager = ProgressManager(requireContext())
         progressManager?.show("Loading dashboard...")
         dataLoadedCount = 0
         setupDashboardListeners()
 
-        // Button click listeners
-        btnAddStudent.setOnClickListener {
-            showAddStudentDialog()
+        btnAddEmployee.setOnClickListener {
+            startActivity(Intent(requireContext(), RegisterStaffActivity::class.java))
         }
 
         btnCreateEvent.setOnClickListener {
             showCreateEventDialog()
         }
 
-        btnAddLetter.setOnClickListener {
-            showAddLetterDialog()
+        btnAddStudent.setOnClickListener {
+            showAddStudentDialog()
         }
     }
 
     private fun showAddStudentDialog() {
         val dialog = AddStudentDialog.newInstance()
-        dialog.setOnStudentAddedListener { success, message ->
+        dialog.setOnStudentAddedListener { _, message ->
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         }
         dialog.show(parentFragmentManager, "AddStudentDialog")
     }
 
     private fun showCreateEventDialog() {
-        val dialog = CreateEventDialog.newInstance()
-        dialog.setOnEventCreatedListener { success, message, qrCode ->
+        val calendar = Calendar.getInstance()
+        val date = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val dialog = AddEventCalendarDialog.newInstance(date = date, day = day)
+        dialog.setOnEventAddedListener { _, message ->
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         }
-        dialog.show(parentFragmentManager, "CreateEventDialog")
-    }
-
-    private fun showAddLetterDialog() {
-        val dialog = AddLetterDialog.newInstance()
-        dialog.setOnLetterAddedListener { success, message ->
-            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-        }
-        dialog.show(parentFragmentManager, "AddLetterDialog")
+        dialog.show(parentFragmentManager, "AddEventCalendarDialog")
     }
 
     private fun onDataLoaded() {
         dataLoadedCount++
-        if (dataLoadedCount >= 3) { // letters + events + attendance
+        if (dataLoadedCount >= 3) {
             progressManager?.dismiss()
         }
     }
 
     private fun setupDashboardListeners() {
-        // Listen to letters for real-time updates
-        lettersListener = repository.listenToLetters { letters ->
-            val total = letters.size
-            var turnedIn = 0
-            var onHand = 0
-
-            for (letter in letters) {
-                when (letter.status.lowercase()) {
-                    "turned in", "turned_in", "completed" -> turnedIn++
-                    "on hand", "pending" -> onHand++
-                }
+        studentsListener = db.collection("users")
+            .whereIn("role", listOf("student", "beneficiary"))
+            .addSnapshotListener { snapshot, _ ->
+                val total = snapshot?.documents?.count { doc ->
+                    val approvalStatus = doc.getString("approvalStatus")?.trim()?.lowercase().orEmpty()
+                    val legacyStatus = doc.getString("status")?.trim()?.lowercase().orEmpty()
+                    approvalStatus.isNotBlank() || legacyStatus.isNotBlank()
+                } ?: 0
+                tvTotalStudents.text = total.toString()
+                onDataLoaded()
             }
 
-            tvTotalLetters.text = total.toString()
-            tvTurnedIn.text = turnedIn.toString()
-            tvOnHand.text = onHand.toString()
-            onDataLoaded()
-        }
-
-        // Listen to events for real-time updates
-        eventsListener = repository.listenToUpcomingEvents { events ->
-            tvUpcomingEvents.text = events.size.toString()
-
-            // Clear container and add event items
-            eventsContainer.removeAllViews()
-            for (event in events.take(5)) { // Show only first 5 events
-                val eventName = event.name.ifEmpty { event.title.ifEmpty { "Unknown Event" } }
-                val eventDate = event.date.ifEmpty { "" }
-                addEventToContainer(eventName, eventDate)
+        employeesListener = db.collection("users")
+            .whereIn("role", listOf("staff", "caseworker"))
+            .addSnapshotListener { snapshot, _ ->
+                tvTotalEmployees.text = (snapshot?.size() ?: 0).toString()
+                onDataLoaded()
             }
 
-            if (events.isEmpty()) {
-                val textView = TextView(requireContext()).apply {
-                    text = "No upcoming events"
-                    textSize = 14f
-                    setPadding(0, 8, 0, 8)
-                }
-                eventsContainer.addView(textView)
-            }
-            onDataLoaded()
-        }
-
-        // Listen to attendance for real-time updates
         attendanceListener = repository.listenToAttendance { attendanceList ->
-            recentlyContainer.removeAllViews()
-            for (attendance in attendanceList.take(5)) { // Show only first 5 recent attendance
-                val studentName = attendance.studentName.ifEmpty { "PH ${attendance.studentId}" }
-                val eventName = attendance.eventName.ifEmpty { "Event" }
-                val date = attendance.date
-                addRecentAttendanceToContainer(studentName, eventName, date)
-            }
+            tvAttendanceCount.text = attendanceList.size.toString()
 
+            monitoringContainer.removeAllViews()
             if (attendanceList.isEmpty()) {
-                val textView = TextView(requireContext()).apply {
-                    text = "No recent attendance"
-                    textSize = 14f
-                    setPadding(0, 8, 0, 8)
+                addMonitoringItem("No recent activity", "Attendance records will appear here once students start scanning.")
+            } else {
+                attendanceList.take(5).forEach { attendance ->
+                    val studentName = attendance.studentName.ifBlank { attendance.studentId.ifBlank { "Unknown student" } }
+                    val detail = attendance.eventName.ifBlank { "Attendance recorded" }
+                    val time = listOf(attendance.date, attendance.scanTime.ifBlank { attendance.time })
+                        .filter { it.isNotBlank() }
+                        .joinToString(" - ")
+                    addMonitoringItem(studentName, if (time.isBlank()) detail else "$detail - $time")
                 }
-                recentlyContainer.addView(textView)
             }
             onDataLoaded()
         }
     }
 
-    private fun addEventToContainer(name: String, date: String) {
-        val eventView = LayoutInflater.from(requireContext()).inflate(R.layout.item_dashboard_event, eventsContainer, false)
-        eventView.findViewById<TextView>(R.id.tvEventName).text = name
-        eventView.findViewById<TextView>(R.id.tvEventDate).text = date
-        eventsContainer.addView(eventView)
-    }
-
-    private fun addRecentAttendanceToContainer(studentName: String, eventName: String, date: String) {
-        val attendanceView = LayoutInflater.from(requireContext()).inflate(R.layout.item_recent_attendance, recentlyContainer, false)
-        attendanceView.findViewById<TextView>(R.id.tvStudentName).text = studentName
-        attendanceView.findViewById<TextView>(R.id.tvAttendanceDetail).text = "Attended $eventName"
-        attendanceView.findViewById<TextView>(R.id.tvTime).text = date
-        recentlyContainer.addView(attendanceView)
+    private fun addMonitoringItem(title: String, subtitle: String) {
+        val row = LayoutInflater.from(requireContext()).inflate(R.layout.item_recent_attendance, monitoringContainer, false)
+        row.findViewById<TextView>(R.id.tvStudentName).text = title
+        row.findViewById<TextView>(R.id.tvAttendanceDetail).text = subtitle
+        row.findViewById<TextView>(R.id.tvTime).visibility = View.GONE
+        monitoringContainer.addView(row)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         progressManager?.dismiss()
-        lettersListener?.remove()
-        eventsListener?.remove()
+        studentsListener?.remove()
+        employeesListener?.remove()
         attendanceListener?.remove()
     }
 }

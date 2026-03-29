@@ -11,6 +11,7 @@ import android.view.Window
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.firestore.FirebaseFirestore
 
 class EditStudentDialog : DialogFragment() {
 
@@ -23,6 +24,7 @@ class EditStudentDialog : DialogFragment() {
     private lateinit var btnSave: MaterialButton
 
     private lateinit var repository: FirebaseRepository
+    private val db = FirebaseFirestore.getInstance()
     private var onStudentUpdatedListener: ((Boolean, String) -> Unit)? = null
 
     companion object {
@@ -119,19 +121,33 @@ class EditStudentDialog : DialogFragment() {
         btnSave.isEnabled = false
         btnSave.text = "Saving..."
 
-        repository.updateStudent(
-            studentId = studentId,
-            updates = updates,
-            onSuccess = {
+        val userUpdates = mutableMapOf<String, Any>(
+            "name" to name,
+            "email" to email,
+            "phone" to phoneNumber,
+            "phoneNumber" to phoneNumber,
+            "section" to section,
+            "year" to year
+        )
+        val nameParts = name.split(" ").filter { it.isNotBlank() }
+        if (nameParts.isNotEmpty()) {
+            userUpdates["FirstName"] = nameParts.first()
+            userUpdates["LastName"] = nameParts.drop(1).joinToString(" ")
+        }
+
+        val batch = db.batch()
+        batch.set(db.collection("students").document(studentId), updates, com.google.firebase.firestore.SetOptions.merge())
+        batch.set(db.collection("users").document(studentId), userUpdates, com.google.firebase.firestore.SetOptions.merge())
+        batch.commit()
+            .addOnSuccessListener {
                 onStudentUpdatedListener?.invoke(true, "Student updated successfully!")
                 dismiss()
-            },
-            onFailure = { e ->
+            }
+            .addOnFailureListener { e ->
                 btnSave.isEnabled = true
                 btnSave.text = "Save Changes"
                 onStudentUpdatedListener?.invoke(false, "Error: ${e.message}")
             }
-        )
     }
 }
 

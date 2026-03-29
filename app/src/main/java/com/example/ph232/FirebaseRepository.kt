@@ -24,6 +24,7 @@ class FirebaseRepository private constructor() {
     private val adminsCollection = db.collection("admins")
     private val qrSessionsCollection = db.collection("qr_sessions")
     private val attendanceLogsCollection = db.collection("attendance_logs")
+    private val usersCollection = db.collection("users")
 
     // Active listeners for real-time updates
     private val activeListeners = mutableListOf<ListenerRegistration>()
@@ -43,12 +44,16 @@ class FirebaseRepository private constructor() {
 
     fun addStudent(student: Student, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         val studentData = hashMapOf(
+            "benId" to student.benId,
             "name" to student.name,
             "email" to student.email,
             "section" to student.section,
             "birthday" to student.birthday,
             "year" to student.year,
             "status" to student.status,
+            "approvalStatus" to student.approvalStatus.ifBlank { student.status },
+            "assignedCaseworkerId" to student.assignedCaseworkerId,
+            "assignedCaseworkerName" to student.assignedCaseworkerName,
             "phoneNumber" to student.phoneNumber,
             "address" to student.address,
             "profileImageUrl" to student.profileImageUrl,
@@ -58,6 +63,53 @@ class FirebaseRepository private constructor() {
 
         studentsCollection.add(studentData)
             .addOnSuccessListener { docRef -> onSuccess(docRef.id) }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun upsertStudentProfile(
+        studentId: String,
+        studentData: Map<String, Any?>,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val payload = studentData.toMutableMap()
+        payload["updatedAt"] = com.google.firebase.firestore.FieldValue.serverTimestamp()
+        if (!payload.containsKey("createdAt")) {
+            payload["createdAt"] = com.google.firebase.firestore.FieldValue.serverTimestamp()
+        }
+
+        studentsCollection.document(studentId)
+            .set(payload, com.google.firebase.firestore.SetOptions.merge())
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onFailure(e) }
+    }
+
+    fun updateStudentVerification(
+        userId: String,
+        studentProfileId: String,
+        assignedCaseworkerId: String,
+        assignedCaseworkerName: String,
+        approvalStatus: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val batch = db.batch()
+        val normalizedApproval = approvalStatus.lowercase(Locale.getDefault())
+        val userRef = usersCollection.document(userId)
+        val studentRef = studentsCollection.document(studentProfileId)
+        val updates = mapOf(
+            "assignedCaseworkerId" to assignedCaseworkerId,
+            "assignedCaseworkerName" to assignedCaseworkerName,
+            "Assigned Caseworker" to assignedCaseworkerName,
+            "approvalStatus" to normalizedApproval,
+            "status" to normalizedApproval,
+            "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+
+        batch.set(userRef, updates, com.google.firebase.firestore.SetOptions.merge())
+        batch.set(studentRef, updates, com.google.firebase.firestore.SetOptions.merge())
+        batch.commit()
+            .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { e -> onFailure(e) }
     }
 
@@ -726,8 +778,13 @@ class FirebaseRepository private constructor() {
      * Looks up all users with the given role and creates a notification for each.
      */
     fun broadcastNotification(role: String, title: String, message: String, type: String, relatedId: String = "") {
-        db.collection("users")
-            .whereEqualTo("role", role)
+        val roleQuery = when (role) {
+            "staff" -> usersCollection.whereIn("role", listOf("staff", "caseworker"))
+            "user" -> usersCollection.whereIn("role", listOf("user", "student", "beneficiary"))
+            else -> usersCollection.whereEqualTo("role", role)
+        }
+
+        roleQuery
             .get()
             .addOnSuccessListener { snapshot ->
                 for (doc in snapshot.documents) {
@@ -833,12 +890,13 @@ class FirebaseRepository private constructor() {
         createdBy: String,
         createdByName: String,
         expiresInMinutes: Int = 60,
+        expiresAtMillis: Long? = null,
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        val expiresAt = System.currentTimeMillis() + (expiresInMinutes * 60 * 1000)
+        val expiresAt = expiresAtMillis ?: (System.currentTimeMillis() + (expiresInMinutes * 60 * 1000))
 
         // First, deactivate all existing active sessions
         deactivateAllQrSessions(
@@ -975,7 +1033,12 @@ class FirebaseRepository private constructor() {
                 val session = snapshot?.documents?.firstOrNull()?.let { doc ->
                     doc.toObject(QrSession::class.java)?.copy(id = doc.id)
                 }
-                onUpdate(session)
+                if (session != null && session.expiresAt > 0 && System.currentTimeMillis() > session.expiresAt) {
+                    deactivateQrSession(session.id, {}, {})
+                    onUpdate(null)
+                } else {
+                    onUpdate(session)
+                }
             }
         activeListeners.add(listener)
         return listener

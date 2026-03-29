@@ -16,18 +16,22 @@ class ProgressManager {
     constructor(context: Context) {
         dialog = Dialog(context)
     }
-    fun show(message: String = "Loading...") {
+    fun show(message: String = "Please wait") {
         try {
             if (dialog == null) return
             val context = dialog!!.context
             if (context is Activity && (context.isFinishing || context.isDestroyed)) return
-            if (dialog!!.isShowing) return
+            if (dialog!!.isShowing) {
+                dialog!!.findViewById<TextView>(R.id.tvLoadingMessage)?.text = message
+                return
+            }
             val view = LayoutInflater.from(context).inflate(R.layout.dialog_loading, null)
             val tvMessage = view.findViewById<TextView>(R.id.tvLoadingMessage)
             tvMessage?.text = message
             dialog!!.setContentView(view)
             dialog!!.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             dialog!!.setCancelable(false)
+            dialog!!.setCanceledOnTouchOutside(false)
             val ivMascot = view.findViewById<ImageView>(R.id.ivMascotLoader)
             val rotationAnim = AnimationUtils.loadAnimation(context, R.anim.mascot_rotation)
             ivMascot?.startAnimation(rotationAnim)
