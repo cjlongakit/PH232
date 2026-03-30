@@ -130,12 +130,10 @@ class AdminStudentsFragment : Fragment() {
     }
 
     private fun listenToCaseworkers() {
-        caseworkersListener = db.collection("users")
-            .whereIn("role", listOf("staff", "caseworker"))
-            .orderBy("FirstName", Query.Direction.ASCENDING)
+        caseworkersListener = db.collection("staff")
+            .orderBy("name", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
                 val dynamicOptions = snapshot?.documents
-                    ?.filter { isApprovedCaseworker(it) }
                     ?.map {
                         CaseworkerOption(
                             id = it.id,
@@ -451,15 +449,7 @@ class AdminStudentsFragment : Fragment() {
     }
 
     private fun buildCaseworkerLabel(doc: DocumentSnapshot): String {
-        val firstName = valueOrBlank(doc.getString("FirstName"), doc.getString("firstName"))
-        val lastName = valueOrBlank(doc.getString("LastName"), doc.getString("lastName"))
-        return listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { doc.id }
-    }
-
-    private fun isApprovedCaseworker(doc: DocumentSnapshot): Boolean {
-        val approvalStatus = valueOrBlank(doc.getString("approvalStatus"), doc.getString("status"))
-        return approvalStatus.equals("approved", ignoreCase = true) ||
-            approvalStatus.equals("active", ignoreCase = true)
+        return valueOrBlank(doc.getString("name"), doc.getString("email")).ifBlank { doc.id }
     }
 
     private fun toStudentAccount(doc: DocumentSnapshot): StudentAccount {

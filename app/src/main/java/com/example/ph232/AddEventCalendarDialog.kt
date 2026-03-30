@@ -2,6 +2,7 @@ package com.example.ph232
 
 import android.app.DatePickerDialog
 import android.app.Dialog
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -144,7 +145,7 @@ class AddEventCalendarDialog : DialogFragment() {
             parseDate(selectedDate)?.let { calendar.time = it }
         }
 
-        DatePickerDialog(
+        val datePicker = DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
                 calendar.set(Calendar.YEAR, year)
@@ -159,7 +160,19 @@ class AddEventCalendarDialog : DialogFragment() {
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+        )
+
+        if (shouldRestrictPastDates()) {
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            datePicker.datePicker.minDate = today.timeInMillis
+        }
+
+        datePicker.show()
     }
 
     private fun saveEvent(isEditMode: Boolean) {
@@ -174,6 +187,11 @@ class AddEventCalendarDialog : DialogFragment() {
 
         if (eventDate.isEmpty()) {
             etEventDate.error = "Date is required"
+            return
+        }
+
+        if (shouldRestrictPastDates() && isPastDate(eventDate)) {
+            etEventDate.error = "Past dates are not allowed"
             return
         }
 
@@ -257,5 +275,28 @@ class AddEventCalendarDialog : DialogFragment() {
         SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     ).firstNotNullOfOrNull { format ->
         runCatching { format.parse(rawDate) }.getOrNull()
+    }
+
+    private fun shouldRestrictPastDates(): Boolean {
+        val prefs = requireContext().getSharedPreferences("PH232_PREFS", Context.MODE_PRIVATE)
+        return prefs.getString("USER_ROLE", "")?.equals("staff", ignoreCase = true) == true
+    }
+
+    private fun isPastDate(rawDate: String): Boolean {
+        val parsedDate = parseDate(rawDate) ?: return false
+        val selected = Calendar.getInstance().apply {
+            time = parsedDate
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return selected.before(today)
     }
 }

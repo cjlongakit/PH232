@@ -89,24 +89,35 @@ class RegisterStaffActivity : AppCompatActivity() {
                         Toast.makeText(this, "Username already in use", Toast.LENGTH_LONG).show()
                         etUsername.error = "Already in use"
                     } else {
+                        val fullName = "${etFirstName.text.toString().trim()} ${etLastName.text.toString().trim()}".trim()
+                        val email = etEmail.text.toString().trim()
+
                         val userMap = hashMapOf(
-                            "name" to "${etFirstName.text.toString().trim()} ${etLastName.text.toString().trim()}".trim(),
-                            "FirstName" to etFirstName.text.toString().trim(),
-                            "LastName" to etLastName.text.toString().trim(),
-                            "email" to etEmail.text.toString().trim(),
-                            "guardEmail" to etEmail.text.toString().trim(),
-                            "phone" to etMobile.text.toString().trim(),
-                            "guardMobile" to etMobile.text.toString().trim(),
-                            "position" to etPosition.text.toString().trim(),
+                            "id" to username,
+                            "email" to email,
                             "password" to password,
-                            "role" to "caseworker",
+                            "role" to "staff",
                             "status" to "approved",
                             "approvalStatus" to "approved",
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp()
                         )
 
-                        db.collection("users").document(username).set(userMap)
+                        val staffMap = hashMapOf(
+                            "id" to username,
+                            "name" to fullName,
+                            "email" to email,
+                            "role" to "staff",
+                            "phone" to etMobile.text.toString().trim(),
+                            "position" to etPosition.text.toString().trim(),
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+
+                        val batch = db.batch()
+                        batch.set(db.collection("users").document(username), userMap)
+                        batch.set(db.collection("staff").document(username), staffMap)
+                        batch.commit()
                             .addOnSuccessListener {
                                 progressManager.dismiss()
                                 Toast.makeText(this, "Caseworker account created.", Toast.LENGTH_SHORT).show()

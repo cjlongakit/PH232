@@ -112,8 +112,7 @@ class AdminDashboardFragment : Fragment() {
                 onDataLoaded()
             }
 
-        employeesListener = db.collection("users")
-            .whereIn("role", listOf("staff", "caseworker"))
+        employeesListener = db.collection("staff")
             .addSnapshotListener { snapshot, _ ->
                 tvTotalEmployees.text = (snapshot?.size() ?: 0).toString()
                 onDataLoaded()

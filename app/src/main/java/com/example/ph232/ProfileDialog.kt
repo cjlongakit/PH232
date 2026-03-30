@@ -105,6 +105,7 @@ class ProfileDialog : DialogFragment() {
 
         val tvName = view.findViewById<TextView>(R.id.tvProfileName)
         val tvRole = view.findViewById<TextView>(R.id.tvProfileRole)
+        val tvIdLabel = view.findViewById<TextView>(R.id.tvProfileIdLabel)
         val tvId = view.findViewById<TextView>(R.id.tvProfileId)
         val tvStatus = view.findViewById<TextView>(R.id.tvProfileStatus)
         val tvPosition = view.findViewById<TextView>(R.id.tvProfilePosition)
@@ -132,6 +133,12 @@ class ProfileDialog : DialogFragment() {
         val userRole = prefs.getString("USER_ROLE", "user") ?: "user"
         val userName = prefs.getString("USER_NAME", "User") ?: "User"
         val isStudent = userRole.equals("beneficiary", ignoreCase = true) || userRole.equals("student", ignoreCase = true)
+
+        tvIdLabel.text = when {
+            userRole.equals("staff", ignoreCase = true) -> "Caseworker Email"
+            userRole.equals("admin", ignoreCase = true) -> "Admin Username"
+            else -> "PH323 ID"
+        }
 
         CloudinaryHelper.init(requireContext())
         loadAvatar()
@@ -184,10 +191,21 @@ class ProfileDialog : DialogFragment() {
                 val guardianOccupation = valueOrBlank(doc.getString("guardOccupation"), doc.getString("guardianOccupation"))
                 val guardianBirthdate = valueOrBlank(doc.getString("guardBirthdate"), doc.getString("guardianBirthdate"))
                 val position = valueOrBlank(doc.getString("position"), doc.getString("Position"))
+                val isStaffUser = resolvedRole.equals("staff", ignoreCase = true) || resolvedRole.equals("caseworker", ignoreCase = true)
+
+                val displayRole = when {
+                    resolvedRole.equals("staff", ignoreCase = true) || resolvedRole.equals("caseworker", ignoreCase = true) -> "Caseworker"
+                    resolvedRole.equals("admin", ignoreCase = true) -> "Admin"
+                    else -> "Student"
+                }
 
                 tvName.text = fullName
-                tvRole.text = resolvedRole.replaceFirstChar { it.uppercase() }
-                tvId.text = userId.ifBlank { "Not set" }
+                tvRole.text = displayRole
+                tvId.text = when {
+                    isStaffUser -> email.ifBlank { userId.ifBlank { "Not set" } }
+                    resolvedRole.equals("admin", ignoreCase = true) -> userId.ifBlank { "Not set" }
+                    else -> userId.ifBlank { "Not set" }
+                }
                 tvStatus.text = resolvedStatus.replaceFirstChar { it.uppercase() }
                 tvFullName.text = fullName
                 tvBirthdate.text = birthdate.ifBlank { "Not set" }
@@ -212,6 +230,24 @@ class ProfileDialog : DialogFragment() {
                 }
 
                 prefs.edit().putString("USER_NAME", fullName).apply()
+
+                if (isStaffUser) {
+                    db.collection("staff").document(userId).get()
+                        .addOnSuccessListener { staffDoc ->
+                            if (!isAdded || !staffDoc.exists()) return@addOnSuccessListener
+                            val staffName = valueOrBlank(staffDoc.getString("name")).ifBlank { fullName }
+                            val staffEmail = valueOrBlank(staffDoc.getString("email"), email)
+                            val staffPhone = valueOrBlank(staffDoc.getString("phone"), phone)
+                            val staffPosition = valueOrBlank(staffDoc.getString("position"), position)
+                            tvName.text = staffName
+                            tvFullName.text = staffName
+                            tvEmail.text = staffEmail.ifBlank { "Not set" }
+                            tvPhone.text = staffPhone.ifBlank { "Not set" }
+                            tvId.text = staffEmail.ifBlank { userId.ifBlank { "Not set" } }
+                            tvPosition.text = staffPosition.ifBlank { "Not set" }
+                            prefs.edit().putString("USER_NAME", staffName).apply()
+                        }
+                }
 
                 val profileUrl = doc.getString("profileImageUrl") ?: ""
                 if (profileUrl.isNotEmpty()) {

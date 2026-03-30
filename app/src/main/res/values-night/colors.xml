@@ -33,6 +33,7 @@
     <color name="green_500">#34D399</color>
     <color name="green_200">#1B4332</color>
     <color name="red_pending">#F87171</color>
+    <color name="red_danger_dark">#DC2626</color>
     <color name="orange_500">#FBBF24</color>
     <color name="orange_200">#451A03</color>
     <color name="status_turned_in">#34D399</color>
@@ -41,5 +42,6 @@
     <color name="status_active">#34D399</color>
     <color name="status_inactive">#9CA3AF</color>
     <color name="accent_gold">#FBBF24</color>
+    <color name="button_disabled_bg">#3F3F46</color>
 </resources>
 
